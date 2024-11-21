@@ -39,7 +39,20 @@
             </div>
         </div>
     </div>
+
+    <!-- Beneficiary Assignment Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Assign to Beneficiary</h2>
+            <select id="beneficiarySelect" class="form-control">
+                <!-- Beneficiaries will be loaded here -->
+            </select>
+            <button onclick="assignBeneficiary()" class="submit-button">Assign</button>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
-    <script src="pendingDonations.js"></script>
+    <script src="1pendingDonations.js"></script>
 </body>
 </html>

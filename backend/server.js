@@ -22,7 +22,7 @@ const deliveryRoutes = require('./routes/deliveryRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const volunteerRoutes = require('./routes/volunteerRoutes');
 
-app.use('/donors', donorRoutes);
+app.use('/api/donors', donorRoutes); 
 app.use('/beneficiaries', beneficiaryRoutes);
 app.use('/centers', distributionRoutes);
 app.use('/foodtypes', foodTypeRoutes);
