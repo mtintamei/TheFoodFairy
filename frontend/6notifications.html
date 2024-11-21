@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - Food Fairy</title>
+    <link rel="stylesheet" href="6notificationstyles/base.css">
+    <link rel="stylesheet" href="6notificationstyles/header.css">
+    <link rel="stylesheet" href="6notificationstyles/notifications.css">
+    <link rel="stylesheet" href="6notificationstyles/toast.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">← Back to Dashboard</a>
+                <img
+                    alt="Company Logo"
+                    src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                    class="navbar8-image1"
+                />
+            </div>
+            <div class="header-right">
+                <button onclick="handleLogout()" class="logout-button">Logout</button>
+            </div>
+        </div>
+
+        <div class="notifications-header">
+            <h1>Notifications</h1>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="high">High Priority</button>
+                <button class="filter-btn" data-filter="medium">Medium Priority</button>
+                <button class="filter-btn" data-filter="low">Low Priority</button>
+            </div>
+        </div>
+
+        <div class="notifications-list" id="notificationsList">
+            <!-- Notifications will be inserted here dynamically -->
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="6notifications.js"></script>
+</body>
+</html>

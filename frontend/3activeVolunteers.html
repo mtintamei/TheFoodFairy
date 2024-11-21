@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Active Volunteers - Food Fairy</title>
+    <link rel="stylesheet" href="employeeDashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">← Back to Dashboard</a>
+                <img
+                    alt="Company Logo"
+                    src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                    class="navbar8-image1"
+                />
+            </div>
+            <div class="header-right">
+                <button onclick="handleLogout()" class="logout-button">Logout</button>
+            </div>
+            <h1>Active Volunteers</h1>
+        </div>
+
+        <div class="content-grid">
+            <div class="filters">
+                <input type="text" id="searchVolunteer" placeholder="Search volunteers..." class="search-input">
+                <select id="availability" class="filter-select">
+                    <option value="">All Availability</option>
+                    <option value="morning">Morning</option>
+                    <option value="afternoon">Afternoon</option>
+                    <option value="evening">Evening</option>
+                </select>
+            </div>
+
+            <div class="volunteers-grid" id="volunteersContainer">
+                <!-- Volunteers will be inserted here dynamically -->
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="activeVolunteers.js"></script>
+</body>
+</html>

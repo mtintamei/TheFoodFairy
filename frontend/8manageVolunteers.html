@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Volunteers - Food Fairy</title>
+    <link rel="stylesheet" href="789styles/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">
+                    ← Back to Dashboard
+                </a>
+                <h1>Manage Volunteers</h1>
+            </div>
+        </div>
+
+        <div class="filters">
+            <input type="text" class="search-input" placeholder="Search volunteers...">
+            <select class="filter-select">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="pending">Pending Verification</option>
+            </select>
+        </div>
+
+        <div class="volunteers-grid" id="volunteersGrid">
+            <!-- Volunteers will be populated here -->
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="8manageVolunteers.js"></script>
+</body>
+</html>

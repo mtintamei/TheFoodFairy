@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Food Fairy - Frequently Asked Questions</title>
+    <link rel="stylesheet" href="faq.css">
+    
+</head>
+<body>
+    <div class="faq-container">
+        <div class="faq-header">
+            <h1>Frequently Asked Questions</h1>
+            <input type="text" id="faqSearch" placeholder="Search questions...">
+        </div>
+
+        <div class="faq-section">
+            <div class="faq-question" onclick="toggleAnswer(this)">
+                <span>How can I donate food?</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+                Contact us at hello@foodfairy.org or call +1 (555) 000-0000. We accept fresh produce, packaged non-perishable goods, and prepared meals from restaurants. All donations must meet our food safety standards.
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <div class="faq-question" onclick="toggleAnswer(this)">
+                <span>How do I become a volunteer?</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+                Apply online through our website. We require a background check, and volunteers must be at least 18 years old. We offer training for various roles including food collection, distribution, and administrative support.
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <div class="faq-question" onclick="toggleAnswer(this)">
+                <span>What areas do you serve?</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+                Our primary service area is Brooklyn, NY, with plans to expand to surrounding boroughs. We focus on high-need communities to maximize our impact.
+            </div>
+        </div>
+
+        <div class="faq-section">
+            <div class="faq-question" onclick="toggleAnswer(this)">
+                <span>How are donations used?</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="faq-answer">
+                100% of donations go directly to food redistribution. We collect surplus food, ensure its quality, and distribute it to local families, shelters, and community centers within 24 hours of collection.
+            </div>
+        </div>
+    </div>
+
+    <script src="faq.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Food Fairy - Employee Login</title>
+    <link rel="stylesheet" href="employeeLogin.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="login-card">
+        <div class="logo">
+        <img
+                alt="Company Logo"
+                src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                class="navbar8-image1"
+              />
+             </div>
+        
+        <div class="header">
+          <h1>Welcome back</h1>
+          <p>Enter your credentials to access your account</p>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="icon">👤</i>
+              <input type="email" id="email" placeholder="Email address" required />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <div class="input-wrapper">
+              <i class="icon">🔒</i>
+              <input type="password" id="password" placeholder="Password" required />
+            </div>
+          </div>
+
+          <button type="submit" class="login-button">Login</button>
+
+          <div class="forgot-password">
+            <a href="#">Forgot password?</a>
+          </div>
+        </form>
+      </div>
+
+      <p class="support-text">
+        Need help? Contact <a href="mailto:support@foodfairy.org">support@foodfairy.org</a>
+      </p>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- Add the forgot password modal -->
+    <div id="forgotPasswordModal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h2>Reset Password</h2>
+        <p>Enter your email address to receive password reset instructions.</p>
+        <form id="forgotPasswordForm">
+          <div class="input-wrapper">
+            <i class="icon">📧</i>
+            <input type="email" id="resetEmail" placeholder="Enter your email" required />
+          </div>
+          <button type="submit" class="login-button">Send Reset Link</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="employeeLogin.js"></script>
+  </body>
+</html>

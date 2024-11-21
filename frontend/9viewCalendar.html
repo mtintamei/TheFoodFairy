@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Calendar - Food Fairy</title>
+    <link rel="stylesheet" href="789styles/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">
+                    ← Back to Dashboard
+                </a>
+                <h1>Delivery Calendar</h1>
+            </div>
+        </div>
+
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button id="prevMonth" class="calendar-nav-btn">←</button>
+                <h2 id="currentMonth">January 2024</h2>
+                <button id="nextMonth" class="calendar-nav-btn">→</button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar will be populated here -->
+            </div>
+        </div>
+
+        <div class="deliveries-timeline" id="deliveriesTimeline">
+            <!-- Daily deliveries will be populated here -->
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="9viewCalendar.js"></script>
+</body>
+</html>

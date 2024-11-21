@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Fairy - Employee Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <link rel="stylesheet" href="employeeDashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img
+                alt="Company Logo"
+                src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                class="navbar8-image1"
+              />
+            <p>Dashboard Overview</p>
+        </div>
+        <div class="header-right">
+            <button onclick="handleLogout()" class="logout-button">Logout</button>
+        </div>
+        <div class="stats-container">
+            <a href="/1pendingDonations" class="stat-card" data-type="pending">
+                <h3>Pending Donations</h3>
+                <div class="number" id="pendingDonations"></div>
+            </a>
+            <a href="/2todayDeliveries" class="stat-card" data-type="deliveries">
+                <h3>Today's Deliveries</h3>
+                <div class="number" id="todayDeliveries"></div>
+            </a>
+            <a href="/3activeVolunteers" class="stat-card" data-type="volunteers">
+                <h3>Active Volunteers</h3>
+                <div class="number" id="activeVolunteers"></div>
+            </a>
+            <a href="/6notifications" class="stat-card">
+
+                <h3>Notifications</h3>
+
+                <div class="number" id="notifications"></div>
+
+            </a>
+        </div>
+        <div class="charts-container">
+            <div class="chart-card">
+                <h3>Monthly Distribution Progress</h3>
+                <canvas id="distributionChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Donation Sources Trend</h3>
+                <canvas id="donationChart"></canvas>
+            </div>
+        </div>
+        <div class="actions-container">
+            <div class="urgent-actions">
+                <h3>High Priority Notifications</h3>
+                <a href="5urgentActions.html" class="view-all-link">View all urgent notifications →</a>
+                <div id="urgentNotificationsList">
+                    <!-- Dynamic urgent actions will be inserted here -->
+                </div>
+            </div>
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions-grid">
+                    <a href="/4recordDonation" class="action-button">Record New Donation</a>
+                    <a href="/7scheduleDelivery" class="action-button">Schedule Delivery</a>
+                    <a href="/8manageVolunteers" class="action-button">Manage Volunteers</a>
+                    <a href="/9viewCalendar" class="action-button">View Calendar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="employeeDashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Delivery - Food Fairy</title>
+    <link rel="stylesheet" href="789styles/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">
+                    ← Back to Dashboard
+                </a>
+                <h1>Schedule Delivery</h1>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form class="donation-form" id="scheduleDeliveryForm">
+                <div class="form-group">
+                    <label for="donationId">Select Donation</label>
+                    <select id="donationId" required>
+                        <option value="">Select a pending donation</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="volunteerId">Assign Volunteer</label>
+                    <select id="volunteerId" required>
+                        <option value="">Select a volunteer</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="pickupTime">Pickup Time</label>
+                    <input type="datetime-local" id="pickupTime" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="route">Delivery Route</label>
+                    <select id="route" required>
+                        <option value="">Select a route</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="submit-button">Schedule Delivery</button>
+            </form>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="7scheduleDelivery.js"></script>
+</body>
+</html>

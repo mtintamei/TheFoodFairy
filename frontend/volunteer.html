@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Fairy - Volunteer Registration</title>
+    <link rel="stylesheet" href="volunteerj.css">
+</head>
+<body>
+    <div class="container">
+        <form id="volunteerForm" class="volunteer-form">
+            <h1>Join the Food Fairy Team</h1>
+            <p>Help us make a difference in our community!</p>
+
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" name="firstName" required>
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <div class="gender-options">
+                        <label>
+                            <input type="radio" name="gender" value="male" required>
+                            Male
+                        </label>
+                        <label>
+                            <input type="radio" name="gender" value="female">
+                            Female
+                        </label>
+                        <label>
+                            <input type="radio" name="gender" value="other">
+                            Others
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="startDate">When can you start?</label>
+                    <input type="date" id="startDate" name="startDate" required>
+                </div>
+                <div class="form-group full-width">
+                    <label for="address">Where do you live?</label>
+                    <textarea id="address" name="address" required></textarea>
+                </div>
+                <div class="form-group full-width">
+                    <label for="motivation">Why do you want to volunteer with Food Fairy?</label>
+                    <textarea id="motivation" name="motivation" required></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Apply Now</button>
+            </div>
+        </form>
+    </div>
+    <!-- Success Modal -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Congratulations!</h2>
+            <p>Your application has been received.</p>
+            <button id="modalCloseBtn">OK</button>
+        </div>
+    </div>
+
+    <script src="volunteer-script.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Donations - Food Fairy</title>
+    <link rel="stylesheet" href="employeeDashboard.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <a href="employeeDashboard.html" class="back-button">← Back to Dashboard</a>
+                <img
+                    alt="Company Logo"
+                    src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                    class="navbar8-image1"
+                />
+            </div>
+            <div class="header-right">
+                <button onclick="handleLogout()" class="logout-button">Logout</button>
+            </div>
+            <h1>Pending Donations</h1>
+        </div>
+        
+        <div class="content-grid">
+            <div class="filters">
+                <input type="text" id="searchDonor" placeholder="Search by donor..." class="search-input">
+                <select id="foodType" class="filter-select">
+                    <option value="">All Food Types</option>
+                    <option value="fresh">Fresh</option>
+                    <option value="packaged">Packaged</option>
+                    <option value="prepared">Prepared</option>
+                </select>
+            </div>
+
+            <div class="donations-grid" id="donationsContainer">
+                <!-- Donations will be inserted here dynamically -->
+            </div>
+        </div>
+    </div>
+    <div id="toast" class="toast"></div>
+    <script src="pendingDonations.js"></script>
+</body>
+</html>
