@@ -42,29 +42,40 @@ async function fetchDashboardData() {
 
     if (!token) {
         showToast('No token found. Please log in again.');
+        window.location.href = 'employeeLogin.html';
         return;
     }
 
     try {
-        const response = await fetch('http://localhost:3000/employees/dashboard', {
+        const response = await fetch('http://localhost:3000/api/employees/dashboard', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}` // Ensure the token is included in the headers
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast('Dashboard data fetched successfully!');
-            console.log(data);
-            updateDashboard(data); // Assuming you have an updateDashboard function
-        } else {
-            showToast(data.message);
+        if (response.status === 404) {
+            showToast('Dashboard endpoint not found. Please check server configuration.');
+            return;
         }
+
+        if (response.status === 401) {
+            showToast('Session expired. Please log in again.');
+            window.location.href = 'employeeLogin.html';
+            return;
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to fetch dashboard data');
+        }
+
+        const data = await response.json();
+        updateDashboard(data);
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        showToast('An error occurred while fetching dashboard data');
+        showToast(error.message || 'Error loading dashboard data');
     }
 }
 
@@ -80,25 +91,25 @@ function showToast(message) {
 }
 
 function updateDashboard(data) {
-    // Update stats
-    document.getElementById('pendingDonations').textContent = data.stats.pendingDonations;
-    document.getElementById('todayDeliveries').textContent = data.stats.todayDeliveries;
-    document.getElementById('activeVolunteers').textContent = data.stats.activeVolunteers;
-    document.getElementById('notifications').textContent = data.stats.notifications;
+    // Update statistics
+    document.getElementById('pendingDonations').textContent = data.stats.pendingDonations || 0;
+    document.getElementById('todayDeliveries').textContent = data.stats.todayDeliveries || 0;
+    document.getElementById('activeVolunteers').textContent = data.stats.activeVolunteers || 0;
+    document.getElementById('notifications').textContent = data.stats.notifications || 0;
 
-     // Update urgent notifications
-     updateUrgentNotifications(data.urgentNotifications);
+    // Update urgent notifications
+    updateUrgentNotifications(data.urgentNotifications || []);
 
     // Update charts
-    updateDistributionChart(data.distributionData);
-    updateDonationChart(data.donationSources);
+    updateDistributionChart(data.distributionData || []);
+    updateDonationChart(data.donationSources || []);
 }
 
 function updateUrgentNotifications(notifications) {
     const container = document.getElementById('urgentNotificationsList');
     container.innerHTML = '';
 
-    if (notifications.length === 0) {
+    if (!notifications.length) {
         container.innerHTML = `
             <div class="action-item info">
                 No high priority notifications at this time
@@ -112,9 +123,11 @@ function updateUrgentNotifications(notifications) {
         notificationDiv.className = `action-item ${notification.severity}`;
         notificationDiv.innerHTML = `
             <p>${notification.message}</p>
-            <small>Created: ${new Date(notification.created_at).toLocaleString()}</small>
-            ${notification.action_url ? 
-                `<a href="${notification.action_url}" class="notification-action">Take Action</a>` : 
+            <small>${formatDate(notification.created_at)}</small>
+            ${notification.action_required ? 
+                `<a href="#" onclick="handleNotificationAction('${notification.notification_id}', '${notification.action_type}')" class="notification-action">
+                    Take Action
+                </a>` : 
                 ''
             }
             <button onclick="markNotificationAsRead(${notification.notification_id})" class="mark-read-button">
@@ -128,154 +141,196 @@ function updateUrgentNotifications(notifications) {
 async function markNotificationAsRead(notificationId) {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/notifications/${notificationId}/mark-read`, {
+        const response = await fetch(`http://localhost:3000/api/notifications/${notificationId}/mark-read`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
 
-        if (response.ok) {
-            showToast('Notification marked as read');
-            fetchDashboardData(); // Refresh dashboard data
-        } else {
-            showToast('Error marking notification as read');
+        if (!response.ok) {
+            throw new Error('Failed to mark notification as read');
         }
+
+        showToast('Notification marked as read');
+        fetchDashboardData();
     } catch (error) {
-        console.error('Error marking notification as read:', error);
-        showToast('An error occurred');
+        console.error('Error:', error);
+        showToast(error.message);
     }
 }
 
-// Distribution Progress Chart
-let distributionChart = null;
-let donationChart = null;
-
 function updateDistributionChart(data) {
-    const distributionCtx = document.getElementById('distributionChart').getContext('2d');
-    
-    // Destroy existing chart if it exists
-    if (distributionChart) {
-        distributionChart.destroy();
+    const canvas = document.getElementById('distributionChart');
+    if (!canvas) {
+        console.error('Distribution chart canvas not found');
+        return;
     }
 
-    distributionChart = new Chart(distributionCtx, {
-        type: 'line',
-        data: {
-            labels: data.map(d => new Date(2024, d.month - 1).toLocaleString('default', { month: 'short' })),
-            datasets: [{
-                label: 'Delivered (kg)',
-                data: data.map(d => d.delivered),
-                borderColor: '#9b87f5',
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
+    const ctx = canvas.getContext('2d');
+    
+    try {
+        // Safely destroy existing chart
+        if (window.distributionChart instanceof Chart) {
+            window.distributionChart.destroy();
+        }
+
+        // Prepare data with error checking
+        const months = data.map(d => formatMonth(d.month) || '');
+        const values = data.map(d => parseFloat(d.delivered) || 0);
+
+        // Create new chart with error handling
+        window.distributionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Distributed Amount (kg)',
+                    data: values,
+                    borderColor: '#9b87f5',
+                    tension: 0.4,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Quantity (kg)'
+                        }
+                    }
                 }
             }
-        }
-    });
+        });
+    } catch (error) {
+        console.error('Error updating distribution chart:', error);
+    }
 }
 
 function updateDonationChart(data) {
-    const processedData = processSourcesData(data);
-    const donationCtx = document.getElementById('donationChart').getContext('2d');
-    
-    // Destroy existing chart if it exists
-    if (donationChart) {
-        donationChart.destroy();
+    const canvas = document.getElementById('donationChart');
+    if (!canvas) {
+        console.error('Donation chart canvas not found');
+        return;
     }
 
-    donationChart = new Chart(donationCtx, {
-        type: 'bar',
-        data: {
-            labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            datasets: [{
-                label: 'Farms',
-                data: processedData.farms,
-                backgroundColor: '#22c55e'
-            },
-            {
-                label: 'Restaurants',
-                data: processedData.restaurants,
-                backgroundColor: '#9b87f5'
-            },
-            {
-                label: 'Stores',
-                data: processedData.stores,
-                backgroundColor: '#F97316'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'top',
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true
+    const ctx = canvas.getContext('2d');
+    
+    try {
+        // Safely destroy existing chart
+        if (window.donationChart instanceof Chart) {
+            window.donationChart.destroy();
+        }
+
+        // Process the data with error checking
+        const processedData = {
+            restaurant: new Array(4).fill(0),
+            store: new Array(4).fill(0),
+            hotel: new Array(4).fill(0),
+            other: new Array(4).fill(0)
+        };
+
+        data.forEach(item => {
+            if (item && typeof item.week === 'number') {
+                const weekIndex = Math.abs(item.week % 4);
+                const type = (item.source_type || 'other').toLowerCase();
+                if (processedData[type]) {
+                    processedData[type][weekIndex] += parseInt(item.count) || 0;
+                } else {
+                    processedData.other[weekIndex] += parseInt(item.count) || 0;
                 }
             }
-        }
-    });
-}
+        });
 
-function processSourcesData(data) {
-    const result = {
-        farms: new Array(4).fill(0),
-        restaurants: new Array(4).fill(0),
-        stores: new Array(4).fill(0)
-    };
-
-    data.forEach(item => {
-        const weekIndex = item.week % 4;
-        switch(item.source_type.toLowerCase()) {
-            case 'farm':
-                result.farms[weekIndex] += item.count;
-                break;
-            case 'restaurant':
-                result.restaurants[weekIndex] += item.count;
-                break;
-            case 'store':
-                result.stores[weekIndex] += item.count;
-                break;
-        }
-    });
-
-    return result;
-}
-
-// Handle Quick Actions
-function handleAction(action) {
-    const toast = document.getElementById('toast');
-    let message = '';
-    
-    switch(action) {
-        case 'donation':
-            message = 'Opening donation form...';
-            break;
-        case 'delivery':
-            message = 'Opening delivery scheduler...';
-            break;
-        case 'volunteers':
-            message = 'Opening volunteer management...';
-            break;
-        case 'calendar':
-            message = 'Opening calendar view...';
-            break;
+        // Create new chart with error handling
+        window.donationChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                datasets: [
+                    {
+                        label: 'Restaurant',
+                        data: processedData.restaurant,
+                        backgroundColor: '#22c55e'
+                    },
+                    {
+                        label: 'Store',
+                        data: processedData.store,
+                        backgroundColor: '#9b87f5'
+                    },
+                    {
+                        label: 'Hotel',
+                        data: processedData.hotel,
+                        backgroundColor: '#F97316'
+                    },
+                    {
+                        label: 'Other',
+                        data: processedData.other,
+                        backgroundColor: '#64748b'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Donations'
+                        }
+                    }
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error updating donation chart:', error);
     }
-    
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 5000);
 }
+
+// Helper function for formatting months
+function formatMonth(month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1] || '';
+}
+
+// Utility functions
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleString();
+}
+
 function handleLogout() {
     localStorage.removeItem('token');
     window.location.href = 'employeeLogin.html';
+}
+
+// Quick action handlers
+function handleAction(action) {
+    const actionMessages = {
+        donation: 'Opening donation form...',
+        delivery: 'Opening delivery scheduler...',
+        volunteers: 'Opening volunteer management...',
+        calendar: 'Opening calendar view...'
+    };
+    
+    showToast(actionMessages[action] || 'Processing action...');
+    navigateTo(action);
 }

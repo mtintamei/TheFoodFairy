@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Today's Deliveries - Food Fairy</title>
-    <link rel="stylesheet" href="employeeDashboard.css">
+    <link rel="stylesheet" href="2todayDeliveries.css">
 </head>
 <body>
     <div class="container">
@@ -23,11 +23,101 @@
             <h1>Today's Deliveries</h1>
         </div>
 
-        <div class="deliveries-timeline" id="deliveriesContainer">
-            <!-- Deliveries will be inserted here dynamically -->
+        <div class="content-grid">
+            <div class="filters">
+                <select id="statusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="delayed">Delayed</option>
+                </select>
+                <select id="timeFilter" class="filter-select">
+                    <option value="all">All Times</option>
+                    <option value="morning">Morning (6 AM - 12 PM)</option>
+                    <option value="afternoon">Afternoon (12 PM - 5 PM)</option>
+                    <option value="evening">Evening (5 PM - 10 PM)</option>
+                </select>
+                <select id="sortBy" class="filter-select">
+                    <option value="time">Sort by Time</option>
+                    <option value="status">Sort by Status</option>
+                    <option value="recipient">Sort by Recipient</option>
+                </select>
+                <input type="text" id="searchInput" placeholder="Search deliveries..." class="search-input">
+            </div>
+
+            <div class="deliveries-grid" id="deliveriesContainer">
+                <!-- Deliveries will be inserted here dynamically -->
+            </div>
         </div>
     </div>
+
+    <!-- Volunteer Assignment Modal -->
+    <div id="assignVolunteerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Assign Volunteer</h2>
+            <div class="delivery-details" id="deliveryDetails">
+                <!-- Delivery details will be inserted here -->
+            </div>
+            <div class="form-group">
+                <label for="volunteerSelect">Select Volunteer</label>
+                <select id="volunteerSelect" class="form-control" required>
+                    <!-- Volunteers will be loaded here -->
+                </select>
+            </div>
+            <button onclick="assignVolunteer()" class="submit-button">Assign Volunteer</button>
+        </div>
+    </div>
+
+    <!-- Reschedule Modal -->
+    <div id="rescheduleModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Reschedule Delivery</h2>
+            <div class="delivery-details" id="rescheduleDeliveryDetails">
+                <!-- Delivery details will be inserted here -->
+            </div>
+            <div class="form-group">
+                <label for="newDeliveryDate">New Delivery Date & Time</label>
+                <input type="datetime-local" id="newDeliveryDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="rescheduleReason">Reason for Rescheduling</label>
+                <textarea id="rescheduleReason" class="form-control" rows="4" style="min-height: 100px; resize: vertical;" required 
+                    placeholder="Please provide a detailed reason for rescheduling this delivery..."></textarea>
+            </div>
+            <button onclick="rescheduleDelivery()" class="submit-button">Reschedule</button>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div id="statusUpdateModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Update Delivery Status</h2>
+            <div class="delivery-details" id="statusDeliveryDetails">
+                <!-- Delivery details will be inserted here -->
+            </div>
+            <div class="form-group">
+                <label for="statusSelect">New Status</label>
+                <select id="statusSelect" class="form-control" required>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                    <option value="delayed">Delayed</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="statusNotes">Notes</label>
+                <textarea id="statusNotes" class="form-control"></textarea>
+            </div>
+            <button onclick="updateDeliveryStatus()" class="submit-button">Update Status</button>
+        </div>
+    </div>
+
     <div id="toast" class="toast"></div>
-    <script src="todayDeliveries.js"></script>
+    <script src="2todayDeliveries.js"></script>
 </body>
 </html>

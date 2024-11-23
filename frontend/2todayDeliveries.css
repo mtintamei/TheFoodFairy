@@ -1,0 +1,380 @@
+/* Base styles from employeeDashboard.css */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background-color: #f0f2f5;
+    min-height: 100vh;
+}
+
+.container {
+    padding: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header styles */
+.header {
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.back-button {
+    color: #5f6368;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9em;
+    transition: color 0.2s;
+}
+
+.back-button:hover {
+    color: #eb9c09;
+}
+
+.header-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.logout-button {
+    padding: 8px 16px;
+    background-color: #eb9c09;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.logout-button:hover {
+    background-color: #d48d08;
+    color: white;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logout-button {
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+  }
+
+.navbar8-image1 {
+    height: 3rem;
+}
+
+/* Filter section */
+.filters {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.filter-select, .search-input {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.filter-select {
+    min-width: 150px;
+}
+
+.search-input {
+    flex: 1;
+}
+
+/* Deliveries Grid */
+.deliveries-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.delivery-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+    border-left: 4px solid;
+}
+
+.delivery-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.delivery-card.scheduled { border-left-color: #2563eb; }
+.delivery-card.in_progress { border-left-color: #eb9c09; }
+.delivery-card.completed { border-left-color: #16a34a; }
+.delivery-card.delayed { border-left-color: #dc2626; }
+
+.delivery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.delivery-time {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #5f6368;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-badge.scheduled { background: #dbeafe; color: #1e40af; }
+.status-badge.in_progress { background: #fef3c7; color: #92400e; }
+.status-badge.completed { background: #d1fae5; color: #065f46; }
+.status-badge.delayed { background: #fee2e2; color: #991b1b; }
+
+.delivery-info {
+    margin-bottom: 15px;
+}
+
+.delivery-info h3 {
+    color: #5f6368;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #5f6368;
+}
+
+.warning-text {
+    color: #dc2626;
+    font-size: 0.9em;
+}
+
+/* Action Buttons */
+.delivery-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.action-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s;
+    flex: 1;
+    text-align: center;
+}
+
+.assign-button {
+    background-color: #eb9c09;
+    color: white;
+}
+
+.assign-button:hover {
+    background-color: #d48d08;
+}
+
+.reschedule-button {
+    background-color: #eb9c09;
+    color: white;
+}
+
+.reschedule-button:hover {
+    background-color: #d48d08;
+}
+
+.status-button {
+    background-color: #16a34a;
+    color: white;
+}
+
+.status-button:hover {
+    background-color: #15803d;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 20px;
+    top: 10px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #5f6368;
+}
+
+.close:hover {
+    color: #eb9c09;
+}
+
+/* Toast Notification */
+.toast {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateX(200%);
+    transition: transform 0.3s ease-out;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .filters {
+        flex-direction: column;
+    }
+    
+    .filter-select, .search-input {
+        width: 100%;
+    }
+    
+    .deliveries-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .delivery-actions {
+        flex-direction: column;
+    }
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #eb9c09;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #d48d08;
+} 
+
+.modal-content {
+    max-width: 600px;
+    width: 90%;
+    padding: 30px;
+}
+
+.delivery-details {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.submit-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #eb9c09;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.submit-button:hover {
+    background-color: #aa8236;
+} 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pending Donations - Food Fairy</title>
+    <link rel="stylesheet" href="1pendingDonations.css">
     <link rel="stylesheet" href="employeeDashboard.css">
 </head>
 <body>
@@ -45,9 +46,27 @@
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2>Assign to Beneficiary</h2>
-            <select id="beneficiarySelect" class="form-control">
-                <!-- Beneficiaries will be loaded here -->
-            </select>
+            <p id="remainingQuantity" class="remaining-quantity"></p>
+            <div class="form-group">
+                <label for="beneficiarySelect">Select Beneficiary</label>
+                <select id="beneficiarySelect" class="form-control" required>
+                    <!-- Beneficiaries will be loaded here -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="routeSelect">Select Route</label>
+                <select id="routeSelect" class="form-control" required>
+                    <!-- Routes will be loaded here -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="deliveryDate">Delivery Date & Time</label>
+                <input type="datetime-local" id="deliveryDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="assignedQuantity">Quantity to Assign</label>
+                <input type="number" id="assignedQuantity" class="form-control" required>
+            </div>
             <button onclick="assignBeneficiary()" class="submit-button">Assign</button>
         </div>
     </div>

@@ -45,11 +45,13 @@ function displayPendingDonations(donations) {
         card.className = 'donation-card';
         card.innerHTML = `
             <h3>${donation.food_name}</h3>
-            <p><strong>Quantity:</strong> ${donation.quantity} ${donation.unit}</p>
+            <p><strong>Total Quantity:</strong> ${donation.quantity} ${donation.unit}</p>
+            <p><strong>Remaining:</strong> ${donation.remaining_quantity} ${donation.unit}</p>
             <p><strong>Donor:</strong> ${donation.donor_name}</p>
             <p><strong>Category:</strong> ${donation.category}</p>
             <p><strong>Pickup Time:</strong> ${new Date(donation.pickup_time).toLocaleString()}</p>
-            <button onclick="openAssignModal(${donation.donation_id})" class="action-button">
+            <button onclick="openAssignModal(${donation.donation_id}, ${donation.remaining_quantity}, '${donation.unit}')" 
+                    class="action-button">
                 Assign to Beneficiary
             </button>
         `;
@@ -57,58 +59,104 @@ function displayPendingDonations(donations) {
     });
 }
 
-async function openAssignModal(donationId) {
+async function openAssignModal(donationId, remainingQuantity, unit) {
     currentDonationId = donationId;
     const modal = document.getElementById('assignModal');
     const beneficiarySelect = document.getElementById('beneficiarySelect');
+    const routeSelect = document.getElementById('routeSelect');
+    const quantityInput = document.getElementById('assignedQuantity');
+    
+    // Set max quantity and show remaining
+    quantityInput.max = remainingQuantity;
+    quantityInput.placeholder = `Max: ${remainingQuantity} ${unit}`;
+    document.getElementById('remainingQuantity').textContent = `Remaining: ${remainingQuantity} ${unit}`;
     
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/beneficiaries/active', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
         
-        if (!response.ok) {
+        // Fetch beneficiaries and routes in parallel
+        const [beneficiariesResponse, routesResponse] = await Promise.all([
+            fetch('http://localhost:3000/api/beneficiaries/active', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }),
+            fetch('http://localhost:3000/api/beneficiaries/routes', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+        ]);
+        
+        if (!beneficiariesResponse.ok) {
             throw new Error('Failed to fetch beneficiaries');
         }
+        if (!routesResponse.ok) {
+            throw new Error('Failed to fetch routes');
+        }
 
-        const beneficiaries = await response.json();
+        const beneficiaries = await beneficiariesResponse.json();
+        const routes = await routesResponse.json();
+
+        // Populate beneficiaries dropdown
         beneficiarySelect.innerHTML = `
             <option value="">Select a beneficiary...</option>
             ${beneficiaries.map(b => `
                 <option value="${b.recipient_id}">${b.name} (Capacity: ${b.capacity})</option>
             `).join('')}
         `;
+
+        // Populate routes dropdown
+        routeSelect.innerHTML = `
+            <option value="">Select a route...</option>
+            ${routes.map(r => `
+                <option value="${r.route_id}">${r.name} (${r.distance_km} km, ${r.estimated_duration_mins} mins)</option>
+            `).join('')}
+        `;
+        
+        // Set default date to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(9, 0, 0, 0);
+        document.getElementById('deliveryDate').value = tomorrow.toISOString().slice(0, 16);
         
         modal.style.display = 'block';
     } catch (error) {
-        showToast('Error fetching beneficiaries: ' + error.message);
+        showToast('Error fetching data: ' + error.message);
     }
 }
 
 async function assignBeneficiary() {
     const beneficiaryId = document.getElementById('beneficiarySelect').value;
+    const routeId = document.getElementById('routeSelect').value;
+    const deliveryDate = document.getElementById('deliveryDate').value;
+    const quantity = document.getElementById('assignedQuantity').value;
     
-    if (!beneficiaryId) {
-        showToast('Please select a beneficiary');
+    if (!beneficiaryId || !routeId || !deliveryDate || !quantity) {
+        showToast('Please fill in all required fields');
         return;
     }
 
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/donations/${currentDonationId}/assign`, {
+        const response = await fetch(`http://localhost:3000/api/donors/donations/${currentDonationId}/assign`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ recipient_id: beneficiaryId })
+            body: JSON.stringify({
+                recipient_id: beneficiaryId,
+                route_id: routeId,
+                scheduled_delivery_date: deliveryDate,
+                assigned_quantity: parseFloat(quantity)
+            })
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('Failed to assign beneficiary');
+            throw new Error(data.message || 'Failed to assign beneficiary');
         }
 
         document.getElementById('assignModal').style.display = 'none';

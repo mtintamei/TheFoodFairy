@@ -1,0 +1,20 @@
+.remaining-quantity {
+    color: #f20e0e;
+    font-size: 0.9em;
+    margin-bottom: 1em;
+    padding: 5px 10px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+}
+
+input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #eb9c09;
+    border-radius: 4px;
+}
+
+input[type="number"]:invalid {
+    border-color: #ff4444;
+} 
+

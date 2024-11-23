@@ -1,44 +1,167 @@
 const db = require('../config/db');
 
-exports.addVolunteer = (req, res) => {
-  console.log('Received volunteer data:', req.body);
-  const { firstname, lastname, email, gender, phone, start_date, address, why_volunteer } = req.body;
+exports.addVolunteer = async (req, res) => {
+    try {
+        const { firstname, lastname, email, gender, phone, start_date, address, why_volunteer } = req.body;
 
-  if (!firstname || !lastname || !email || !gender || !phone || !start_date || !address || !why_volunteer) {
-    return res.status(400).json({ message: 'Missing required fields', received: req.body });
-  }
+        if (!firstname || !lastname || !email || !gender || !phone || !start_date || !address || !why_volunteer) {
+            return res.status(400).json({ message: 'Missing required fields', received: req.body });
+        }
 
-  // Check if volunteer with the same email already exists
-  const checkEmailQuery = 'SELECT * FROM VOLUNTEERS WHERE email = ?';
-  db.query(checkEmailQuery, [email], (err, results) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ message: 'Database error', error: err.message });
+        // Check if volunteer exists
+        const [existingVolunteers] = await db.query(
+            'SELECT * FROM VOLUNTEERS WHERE email = ?',
+            [email]
+        );
+
+        if (existingVolunteers.length > 0) {
+            return res.status(409).json({ message: 'Volunteer with this email already exists' });
+        }
+
+        const volunteer = {
+            first_name: firstname,
+            last_name: lastname,
+            email: email,
+            gender: gender,
+            phone: phone,
+            start_date: start_date,
+            address: address,
+            why_volunteer: why_volunteer
+        };
+
+        const [result] = await db.query(
+            'INSERT INTO VOLUNTEERS SET ?',
+            [volunteer]
+        );
+
+        res.status(201).json({ 
+            message: 'New volunteer added', 
+            volunteerId: result.insertId 
+        });
+    } catch (error) {
+        console.error('Database error:', error);
+        res.status(500).json({ 
+            message: 'Database error', 
+            error: error.message 
+        });
     }
+};
 
-    if (results.length > 0) {
-      return res.status(409).json({ message: 'Volunteer with this email already exists' });
+exports.getAllVolunteers = async (req, res) => {
+    try {
+        const [volunteers] = await db.query(`
+            SELECT * FROM VOLUNTEERS
+            ORDER BY first_name, last_name
+        `);
+        res.json(volunteers);
+    } catch (error) {
+        console.error('Error fetching volunteers:', error);
+        res.status(500).json({ 
+            message: 'Error fetching volunteers',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
+};
 
-    const volunteer = {
-      first_name: firstname,
-      last_name: lastname,
-      email: email,
-      gender: gender,
-      phone: phone,
-      start_date: start_date,
-      address: address,
-      why_volunteer: why_volunteer
-    };
+exports.getActiveVolunteers = async (req, res) => {
+    try {
+        const [volunteers] = await db.query(`
+            SELECT * FROM VOLUNTEERS
+            WHERE status = 'active'
+            ORDER BY first_name, last_name
+        `);
+        res.json(volunteers);
+    } catch (error) {
+        console.error('Error fetching active volunteers:', error);
+        res.status(500).json({ 
+            message: 'Error fetching active volunteers',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
 
-    let sql = 'INSERT INTO VOLUNTEERS SET ?';
-    db.query(sql, volunteer, (err, result) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ message: 'Database error', error: err.message });
-      }
-      console.log('Insert result:', result);
-      res.status(201).json({ message: 'New volunteer added', volunteerId: result.insertId });
-    });
-  });
+exports.getAvailableVolunteers = async (req, res) => {
+    try {
+        const [volunteers] = await db.query(`
+            SELECT 
+                volunteer_id, 
+                first_name, 
+                last_name, 
+                phone 
+            FROM VOLUNTEERS 
+            WHERE status = 'active' 
+            AND background_check = 'approved'
+            ORDER BY first_name, last_name
+        `);
+        
+        res.json(volunteers);
+    } catch (error) {
+        console.error('Error fetching available volunteers:', error);
+        res.status(500).json({ 
+            message: 'Error fetching available volunteers',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+exports.updateStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        
+        await db.query(
+            'UPDATE VOLUNTEERS SET status = ? WHERE volunteer_id = ?',
+            [status, id]
+        );
+        
+        res.json({ message: 'Volunteer status updated successfully' });
+    } catch (error) {
+        console.error('Error updating volunteer status:', error);
+        res.status(500).json({ 
+            message: 'Error updating volunteer status',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+exports.updateBackgroundCheck = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, notes } = req.body;
+        
+        await db.query(
+            'UPDATE VOLUNTEERS SET background_check_status = ?, background_check_notes = ? WHERE volunteer_id = ?',
+            [status, notes, id]
+        );
+        
+        res.json({ message: 'Background check status updated successfully' });
+    } catch (error) {
+        console.error('Error updating background check:', error);
+        res.status(500).json({ 
+            message: 'Error updating background check',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
+exports.getVolunteerById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [volunteers] = await db.query(
+            'SELECT * FROM VOLUNTEERS WHERE volunteer_id = ?',
+            [id]
+        );
+        
+        if (volunteers.length === 0) {
+            return res.status(404).json({ message: 'Volunteer not found' });
+        }
+        
+        res.json(volunteers[0]);
+    } catch (error) {
+        console.error('Error fetching volunteer:', error);
+        res.status(500).json({ 
+            message: 'Error fetching volunteer',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
 };

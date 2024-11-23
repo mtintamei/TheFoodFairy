@@ -1,21 +1,36 @@
 const db = require('../config/db');
 
-exports.getAllDonors = () => {
-    return new Promise((resolve, reject) => {
-        let sql = 'SELECT * FROM DONORS';
-        db.query(sql, (err, results) => {
-            if (err) return reject(err);
-            resolve(results);
-        });
-    });
-};
+class Donor {
+    static async findAll() {
+        const [rows] = await db.query('SELECT * FROM donors');
+        return rows;
+    }
 
-exports.addDonor = (donor) => {
-    return new Promise((resolve, reject) => {
-        let sql = 'INSERT INTO DONORS SET ?';
-        db.query(sql, donor, (err, result) => {
-            if (err) return reject(err);
-            resolve(result);
-        });
-    });
-};
+    static async create(donor) {
+        const [result] = await db.query(
+            'INSERT INTO donors (name, email, phone, address) VALUES (?, ?, ?, ?)',
+            [donor.name, donor.email, donor.phone, donor.address]
+        );
+        return { id: result.insertId, ...donor };
+    }
+
+    static async findById(id) {
+        const [rows] = await db.query('SELECT * FROM donors WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    static async update(id, donor) {
+        const [result] = await db.query(
+            'UPDATE donors SET name = ?, email = ?, phone = ?, address = ? WHERE id = ?',
+            [donor.name, donor.email, donor.phone, donor.address, id]
+        );
+        return result.affectedRows > 0 ? { id, ...donor } : null;
+    }
+
+    static async delete(id) {
+        const [result] = await db.query('DELETE FROM donors WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+    }
+}
+
+module.exports = Donor;

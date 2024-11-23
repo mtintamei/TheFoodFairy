@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food Fairy - Employee Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="employeeDashboard.css">
 </head>
 <body>
@@ -44,11 +44,15 @@
         <div class="charts-container">
             <div class="chart-card">
                 <h3>Monthly Distribution Progress</h3>
-                <canvas id="distributionChart"></canvas>
+                <div class="chart-container">
+                    <canvas id="distributionChart"></canvas>
+                </div>
             </div>
             <div class="chart-card">
                 <h3>Donation Sources Trend</h3>
-                <canvas id="donationChart"></canvas>
+                <div class="chart-container">
+                    <canvas id="donationChart"></canvas>
+                </div>
             </div>
         </div>
         <div class="actions-container">

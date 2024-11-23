@@ -1,26 +1,32 @@
 const db = require('../config/db');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
-exports.login = (req, res) => {
-    const { email, password } = req.body;
+exports.login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
 
-    let sql = 'SELECT * FROM USERS WHERE email = ? AND password = ?';
-    db.query(sql, [email, password], (err, result) => {
-        if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ message: 'Internal server error' });
+        const [users] = await db.query(
+            'SELECT user_id, email, password, role FROM USERS WHERE email = ?',
+            [email]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        if (result.length === 0) {
+        const user = users[0];
+
+        if (password !== user.password) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
         const token = jwt.sign(
             { 
-                id: result[0].id, 
-                role: result[0].role 
+                id: user.user_id, 
+                role: user.role 
             }, 
-            process.env.JWT_SECRET || 'your-secret-key', // Fallback secret for development
+            process.env.JWT_SECRET || 'your-secret-key',
             { 
                 expiresIn: '24h' 
             }
@@ -30,10 +36,13 @@ exports.login = (req, res) => {
             message: 'Login successful', 
             token,
             user: {
-                id: result[0].id,
-                email: result[0].email,
-                role: result[0].role
+                id: user.user_id,
+                email: user.email,
+                role: user.role
             }
         });
-    });
+    } catch (error) {
+        console.error('Login error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
 };
