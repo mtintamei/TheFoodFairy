@@ -65,16 +65,41 @@ exports.getAllVolunteers = async (req, res) => {
 
 exports.getActiveVolunteers = async (req, res) => {
     try {
+        console.log('getActiveVolunteers endpoint hit');
+        console.log('Request path:', req.path);
+        console.log('Request URL:', req.originalUrl);
+        
+        console.log('Getting active volunteers...');
+        console.log('User:', req.user);
+
         const [volunteers] = await db.query(`
-            SELECT * FROM VOLUNTEERS
-            WHERE status = 'active'
-            ORDER BY first_name, last_name
+            SELECT 
+                v.volunteer_id,
+                v.first_name,
+                v.last_name,
+                v.email,
+                v.phone,
+                v.address,
+                v.start_date,
+                v.background_check,
+                v.status,
+                v.why_volunteer
+            FROM VOLUNTEERS v
+            WHERE v.status = 'active'
+            ORDER BY v.start_date DESC
         `);
+
+        console.log('Query results:', volunteers);
+
         res.json(volunteers);
     } catch (error) {
-        console.error('Error fetching active volunteers:', error);
+        console.error('Error in getActiveVolunteers:', {
+            message: error.message,
+            stack: error.stack
+        });
+        
         res.status(500).json({ 
-            message: 'Error fetching active volunteers',
+            message: 'Error fetching volunteers',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }

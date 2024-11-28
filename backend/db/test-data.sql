@@ -136,3 +136,24 @@ INSERT INTO CASH_DONATIONS (donor_name, email, phone, amount, status) VALUES
 ('Alice Waruga', 'alice@email.com', '+254722333444', 5000.00, 'processed'),
 ('Bob Gitonga', 'bob@email.com', '+254733444555', 10000.00, 'processed'),
 ('Carol Muthoni', 'carol@email.com', '+254744555666', 7500.00, 'pending');
+
+-- Update existing volunteers to be fully vetted and active
+UPDATE VOLUNTEERS 
+SET status = 'active',
+    background_check = 'approved',
+    join_date = CURDATE()
+WHERE volunteer_id IN (1, 2, 3, 4, 5);  -- First 5 volunteers are now fully vetted
+
+-- Add some completed deliveries for these volunteers to build their history
+INSERT INTO DELIVERIES (assignment_id, volunteer_id, status, start_time, end_time, condition_on_delivery, notes) 
+VALUES 
+(1, 1, 'completed', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), 'Good', 'Delivered on time'),
+(2, 2, 'completed', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY), 'Excellent', 'Very professional'),
+(3, 3, 'completed', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY), 'Good', 'No issues');
+
+-- Add some feedback for these volunteers
+INSERT INTO FEEDBACK (donation_id, rating, comment, type, feedback_date) 
+VALUES 
+(1, 5, 'Very professional volunteer', 'recipient', NOW()),
+(2, 4, 'Good service', 'recipient', NOW()),
+(3, 5, 'Excellent delivery', 'recipient', NOW());

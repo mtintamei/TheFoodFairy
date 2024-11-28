@@ -8,13 +8,15 @@ const authMiddleware = require('../middleware/authMiddleware');
 // Public routes
 router.post('/register', volunteerController.addVolunteer);
 
-// Protected routes
+// Protected routes - apply authMiddleware
 router.use(authMiddleware);
 
-// Admin only routes
-router.get('/', volunteerController.getAllVolunteers);
+// GET /api/volunteers/active
 router.get('/active', volunteerController.getActiveVolunteers);
-router.get('/available', authMiddleware, volunteerController.getAvailableVolunteers);
+
+// Other routes
+router.get('/', volunteerController.getAllVolunteers);
+router.get('/available', volunteerController.getAvailableVolunteers);
 router.put('/:id/status', volunteerController.updateStatus);
 router.put('/:id/background-check', volunteerController.updateBackgroundCheck);
 router.get('/:id', volunteerController.getVolunteerById);

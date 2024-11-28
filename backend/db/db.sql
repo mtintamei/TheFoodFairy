@@ -92,7 +92,7 @@ CREATE TABLE DONATION_ASSIGNMENTS (
     route_id INT NOT NULL,
     assigned_quantity DECIMAL(10,2) NOT NULL,
     scheduled_delivery_date DATETIME NOT NULL,
-    status ENUM('scheduled', 'in_progress', 'completed', 'failed') DEFAULT 'scheduled',
+    status ENUM('scheduled', 'in_progress', 'completed', 'delayed', 'failed') DEFAULT 'scheduled',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (donation_id) REFERENCES DONATIONS(donation_id),
@@ -105,7 +105,7 @@ CREATE TABLE DELIVERIES (
     delivery_id INT PRIMARY KEY AUTO_INCREMENT,
     assignment_id INT NOT NULL,
     volunteer_id INT NULL,
-    status ENUM('scheduled', 'in_progress', 'completed', 'failed') DEFAULT 'scheduled',
+    status ENUM('scheduled', 'in_progress', 'completed', 'delayed', 'failed') DEFAULT 'scheduled',
     start_time DATETIME NULL,
     end_time DATETIME NULL,
     condition_on_delivery TEXT,
@@ -157,4 +157,14 @@ CREATE TABLE NOTIFICATIONS (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES USERS(user_id)
 );
+
+-- Update DELIVERIES table status ENUM
+ALTER TABLE DELIVERIES 
+MODIFY COLUMN status ENUM('scheduled', 'in_progress', 'completed', 'delayed', 'failed') 
+DEFAULT 'scheduled';
+
+-- Add 'delayed' to DONATION_ASSIGNMENTS status ENUM
+ALTER TABLE DONATION_ASSIGNMENTS 
+MODIFY COLUMN status ENUM('scheduled', 'in_progress', 'completed', 'delayed', 'failed') 
+DEFAULT 'scheduled';
 

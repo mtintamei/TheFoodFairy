@@ -9,8 +9,9 @@ function setupSearchAndFilters() {
     const searchInput = document.getElementById('searchDonor');
     const foodTypeSelect = document.getElementById('foodType');
 
-    searchInput.addEventListener('input', filterDonations);
-    foodTypeSelect.addEventListener('change', filterDonations);
+    // Add event listeners with debounce for search
+    searchInput.addEventListener('input', debounce(() => filterDonations(), 300));
+    foodTypeSelect.addEventListener('change', () => filterDonations());
 }
 
 async function fetchPendingDonations() {
@@ -39,6 +40,11 @@ async function fetchPendingDonations() {
 function displayPendingDonations(donations) {
     const container = document.getElementById('donationsContainer');
     container.innerHTML = '';
+
+    if (donations.length === 0) {
+        container.innerHTML = '<div class="no-donations">No pending donations available</div>';
+        return;
+    }
 
     donations.forEach(donation => {
         const card = document.createElement('div');
@@ -169,18 +175,74 @@ async function assignBeneficiary() {
 
 function filterDonations() {
     const searchTerm = document.getElementById('searchDonor').value.toLowerCase();
-    const foodType = document.getElementById('foodType').value;
+    const foodType = document.getElementById('foodType').value.toLowerCase();
     const cards = document.querySelectorAll('.donation-card');
 
     cards.forEach(card => {
-        const donorName = card.querySelector('p:nth-child(3)').textContent.toLowerCase();
-        const category = card.querySelector('p:nth-child(4)').textContent.toLowerCase();
+        // Get the donor name and category
+        const donorText = card.querySelector('p:contains("Donor:")').textContent;
+        const categoryText = card.querySelector('p:contains("Category:")').textContent;
         
-        const matchesSearch = donorName.includes(searchTerm);
-        const matchesType = !foodType || category.includes(foodType.toLowerCase());
+        // Extract just the values after the colon and trim whitespace
+        const donorName = donorText.split('Donor:')[1].trim().toLowerCase();
+        const category = categoryText.split('Category:')[1].trim().toLowerCase();
 
-        card.style.display = matchesSearch && matchesType ? 'block' : 'none';
+        // Check if matches search term
+        const matchesSearch = searchTerm === '' || donorName.includes(searchTerm);
+        
+        // Check if matches food type
+        let matchesType = true;
+        if (foodType !== '') {
+            switch (foodType) {
+                case 'fresh':
+                    matchesType = category === 'fresh';
+                    break;
+                case 'packaged':
+                    matchesType = category === 'packaged';
+                    break;
+                case 'prepared':
+                    matchesType = category === 'prepared';
+                    break;
+                default:
+                    matchesType = true;
+            }
+        }
+
+        // Show/hide card based on both conditions
+        card.style.display = (matchesSearch && matchesType) ? 'block' : 'none';
     });
+
+    // Show no results message if needed
+    const visibleCards = Array.from(cards).filter(card => card.style.display === 'block');
+    const container = document.getElementById('donationsContainer');
+    const noResultsMsg = container.querySelector('.no-results') || createNoResultsMessage();
+    
+    if (visibleCards.length === 0) {
+        if (!container.contains(noResultsMsg)) {
+            container.appendChild(noResultsMsg);
+        }
+        noResultsMsg.style.display = 'block';
+    } else {
+        noResultsMsg.style.display = 'none';
+    }
+}
+
+// Helper function to find elements by text content
+Element.prototype.querySelector = function(selector) {
+    if (selector.includes(':contains(')) {
+        const searchText = selector.match(/:contains\((.*?)\)/)[1].replace(/['"]/g, '');
+        return Array.from(this.querySelectorAll('*')).find(el => 
+            el.textContent.includes(searchText)
+        );
+    }
+    return HTMLElement.prototype.querySelector.call(this, selector);
+};
+
+function createNoResultsMessage() {
+    const msg = document.createElement('div');
+    msg.className = 'no-results';
+    msg.textContent = 'No donations match your search criteria';
+    return msg;
 }
 
 function showToast(message) {
@@ -205,4 +267,17 @@ window.onclick = function(event) {
     if (event.target == modal) {
         modal.style.display = 'none';
     }
+}
+
+// Debounce helper function
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }

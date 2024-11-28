@@ -19,6 +19,9 @@ function setupFilters() {
     document.getElementById('searchInput').addEventListener('input', filterDeliveries);
 }
 
+// Add this at the top of the file to store the original data
+let originalDeliveries = [];
+
 async function fetchTodayDeliveries() {
     try {
         const token = localStorage.getItem('token');
@@ -33,8 +36,8 @@ async function fetchTodayDeliveries() {
         }
 
         const deliveries = await response.json();
+        originalDeliveries = deliveries; // Store the original data
         displayDeliveries(deliveries);
-        checkForDelayedDeliveries(deliveries);
     } catch (error) {
         showToast('Error fetching deliveries: ' + error.message);
     }
@@ -45,13 +48,9 @@ function displayDeliveries(deliveries) {
     container.innerHTML = '';
 
     if (deliveries.length === 0) {
-        container.innerHTML = '<div class="no-deliveries">No deliveries scheduled for today</div>';
+        container.innerHTML = '<div class="no-deliveries">No deliveries match the selected filters</div>';
         return;
     }
-
-    // Apply sorting
-    const sortBy = document.getElementById('sortBy').value;
-    sortDeliveries(deliveries, sortBy);
 
     deliveries.forEach(delivery => {
         const card = createDeliveryCard(delivery);
@@ -61,8 +60,8 @@ function displayDeliveries(deliveries) {
 
 function createDeliveryCard(delivery) {
     const card = document.createElement('div');
-    const status = delivery.status || 'pending';
-    card.className = `delivery-card ${status}`;
+    const status = delivery.delivery_status || delivery.assignment_status || 'scheduled';
+    card.className = `delivery-card ${status.toLowerCase()}`;
     card.dataset.deliveryTime = delivery.scheduled_delivery_date;
     
     const deliveryTime = new Date(delivery.scheduled_delivery_date);
@@ -114,18 +113,54 @@ function createDeliveryCard(delivery) {
     return card;
 }
 
-function sortDeliveries(deliveries, sortBy) {
-    switch (sortBy) {
-        case 'time':
-            deliveries.sort((a, b) => new Date(a.scheduled_delivery_date) - new Date(b.scheduled_delivery_date));
-            break;
-        case 'status':
-            deliveries.sort((a, b) => a.status.localeCompare(b.status));
-            break;
-        case 'recipient':
-            deliveries.sort((a, b) => a.recipient_name.localeCompare(b.recipient_name));
-            break;
+function filterDeliveries() {
+    const statusFilter = document.getElementById('statusFilter').value;
+    const timeFilter = document.getElementById('timeFilter').value;
+    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
+    let filteredDeliveries = [...originalDeliveries];
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+        filteredDeliveries = filteredDeliveries.filter(delivery => {
+            const deliveryStatus = delivery.delivery_status || delivery.assignment_status || 'scheduled';
+            return deliveryStatus.toLowerCase() === statusFilter.toLowerCase();
+        });
     }
+
+    // Apply time filter
+    if (timeFilter !== 'all') {
+        filteredDeliveries = filteredDeliveries.filter(delivery => {
+            const deliveryTime = new Date(delivery.scheduled_delivery_date);
+            const hour = deliveryTime.getHours();
+            
+            switch (timeFilter) {
+                case 'morning':
+                    return hour >= 6 && hour < 12;  // 6 AM to 12 PM
+                case 'afternoon':
+                    return hour >= 12 && hour < 17; // 12 PM to 5 PM
+                case 'evening':
+                    return hour >= 17 && hour < 22; // 5 PM to 10 PM
+                default:
+                    return true;
+            }
+        });
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+        filteredDeliveries = filteredDeliveries.filter(delivery => {
+            return (
+                (delivery.recipient_name || '').toLowerCase().includes(searchQuery) ||
+                (delivery.recipient_address || '').toLowerCase().includes(searchQuery) ||
+                (delivery.food_name || '').toLowerCase().includes(searchQuery) ||
+                (delivery.volunteer_name || '').toLowerCase().includes(searchQuery) ||
+                (delivery.route_name || '').toLowerCase().includes(searchQuery)
+            );
+        });
+    }
+
+    displayDeliveries(filteredDeliveries);
 }
 
 async function openAssignVolunteerModal(assignmentId) {
@@ -240,97 +275,6 @@ function handleLogout() {
     window.location.href = 'employeeLogin.html';
 }
 
-function filterDeliveries() {
-    const statusFilter = document.getElementById('statusFilter').value;
-    const timeFilter = document.getElementById('timeFilter').value;
-    const sortBy = document.getElementById('sortBy').value;
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const container = document.getElementById('deliveriesContainer');
-    let deliveryCards = Array.from(container.getElementsByClassName('delivery-card'));
-
-    // Filter by status
-    if (statusFilter !== 'all') {
-        deliveryCards = deliveryCards.filter(card => {
-            const statusBadge = card.querySelector('.status-badge');
-            const cardStatus = statusBadge.textContent.toLowerCase().trim();
-            return cardStatus.includes(statusFilter.toLowerCase());
-        });
-    }
-
-    // Filter by time
-    if (timeFilter !== 'all') {
-        deliveryCards = deliveryCards.filter(card => {
-            const timeText = card.querySelector('.delivery-time').textContent;
-            const deliveryTime = new Date();
-            const [time, period] = timeText.split(' ');
-            const [hours, minutes] = time.split(':');
-            let hour = parseInt(hours);
-            
-            // Convert to 24-hour format
-            if (period === 'PM' && hour !== 12) hour += 12;
-            if (period === 'AM' && hour === 12) hour = 0;
-            
-            switch (timeFilter) {
-                case 'morning':
-                    return hour >= 6 && hour < 12;
-                case 'afternoon':
-                    return hour >= 12 && hour < 17;
-                case 'evening':
-                    return hour >= 17 && hour < 22;
-                default:
-                    return true;
-            }
-        });
-    }
-
-    // Filter by search term
-    if (searchTerm) {
-        deliveryCards = deliveryCards.filter(card => {
-            return card.textContent.toLowerCase().includes(searchTerm);
-        });
-    }
-
-    // Sort deliveries
-    deliveryCards.sort((a, b) => {
-        switch (sortBy) {
-            case 'time':
-                const timeA = new Date(a.dataset.deliveryTime);
-                const timeB = new Date(b.dataset.deliveryTime);
-                return timeA - timeB;
-            case 'status':
-                const statusA = a.querySelector('.status-badge').textContent.toLowerCase();
-                const statusB = b.querySelector('.status-badge').textContent.toLowerCase();
-                return statusA.localeCompare(statusB);
-            case 'recipient':
-                const recipientA = a.querySelector('h3').textContent;
-                const recipientB = b.querySelector('h3').textContent;
-                return recipientA.localeCompare(recipientB);
-            default:
-                return 0;
-        }
-    });
-
-    // Update display
-    container.innerHTML = '';
-    if (deliveryCards.length === 0) {
-        container.innerHTML = '<div class="no-deliveries">No deliveries match the selected filters</div>';
-    } else {
-        deliveryCards.forEach(card => container.appendChild(card));
-    }
-}
-
-function checkForDelayedDeliveries(deliveries) {
-    const now = new Date();
-    const delayedDeliveries = deliveries.filter(delivery => {
-        const deliveryTime = new Date(delivery.scheduled_delivery_date);
-        return deliveryTime < now && delivery.status !== 'completed';
-    });
-
-    if (delayedDeliveries.length > 0) {
-        showToast(`Warning: ${delayedDeliveries.length} delayed deliveries need attention!`, 'warning');
-    }
-}
-
 async function openRescheduleModal(assignmentId) {
     const modal = document.getElementById('rescheduleModal');
     const deliveryDetails = document.getElementById('rescheduleDeliveryDetails');
@@ -415,6 +359,7 @@ async function rescheduleDelivery() {
 async function openStatusUpdateModal(assignmentId) {
     const modal = document.getElementById('statusUpdateModal');
     const deliveryDetails = document.getElementById('statusDeliveryDetails');
+    const statusSelect = document.getElementById('statusSelect');
     
     try {
         const token = localStorage.getItem('token');
@@ -430,16 +375,20 @@ async function openStatusUpdateModal(assignmentId) {
 
         const delivery = await response.json();
         
+        // Set the current status in the select dropdown using delivery_status if available
+        statusSelect.value = delivery.delivery_status || delivery.assignment_status || 'scheduled';
+        
         deliveryDetails.innerHTML = `
-            <p><strong>Recipient:</strong> ${delivery.recipient_name}</p>
-            <p><strong>Food Item:</strong> ${delivery.food_name}</p>
+            <p><strong>Recipient:</strong> ${delivery.recipient_name || 'Not specified'}</p>
+            <p><strong>Food Item:</strong> ${delivery.food_name || 'Not specified'}</p>
             <p><strong>Scheduled Time:</strong> ${new Date(delivery.scheduled_delivery_date).toLocaleString()}</p>
-            <p><strong>Current Status:</strong> ${delivery.status}</p>
+            <p><strong>Current Status:</strong> ${(delivery.delivery_status || delivery.assignment_status || 'scheduled').replace('_', ' ').toUpperCase()}</p>
         `;
         
         modal.dataset.assignmentId = assignmentId;
         modal.style.display = 'block';
     } catch (error) {
+        console.error('Error in openStatusUpdateModal:', error);
         showToast('Error fetching delivery details: ' + error.message);
     }
 }
@@ -448,10 +397,22 @@ async function updateDeliveryStatus() {
     const modal = document.getElementById('statusUpdateModal');
     const assignmentId = modal.dataset.assignmentId;
     const status = document.getElementById('statusSelect').value;
-    const notes = document.getElementById('statusNotes').value;
+    const notes = document.getElementById('statusNotes').value || '';
     
     try {
         const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('Authentication token not found');
+        }
+
+        // Debug log the request
+        console.log('Sending update request:', {
+            assignmentId,
+            status,
+            notes,
+            url: `http://localhost:3000/api/deliveries/${assignmentId}/status`
+        });
+
         const response = await fetch(`http://localhost:3000/api/deliveries/${assignmentId}/status`, {
             method: 'PUT',
             headers: {
@@ -464,15 +425,38 @@ async function updateDeliveryStatus() {
             })
         });
 
+        // Log the raw response
+        console.log('Raw response:', response);
+
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
         if (!response.ok) {
-            throw new Error('Failed to update delivery status');
+            throw new Error(responseData.message || responseData.error || 
+                          `Server error: ${response.status} ${response.statusText}`);
         }
 
         modal.style.display = 'none';
+        document.getElementById('statusNotes').value = '';
         showToast('Delivery status updated successfully');
-        fetchTodayDeliveries();
+        await fetchTodayDeliveries();
     } catch (error) {
-        showToast('Error updating delivery status: ' + error.message);
+        // Enhanced error logging
+        console.error('Update status error details:', {
+            error: error,
+            message: error.message,
+            stack: error.stack,
+            assignmentId: assignmentId,
+            status: status
+        });
+
+        // Check if it's a network error
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            showToast('Network error: Could not connect to server');
+            return;
+        }
+
+        showToast(`Error updating delivery status: ${error.message}`);
     }
 }
 

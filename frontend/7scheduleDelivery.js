@@ -119,3 +119,23 @@ function showToast(message) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
+async function submitDeliverySchedule(event) {
+    event.preventDefault();
+    // ... existing scheduling code ...
+
+    try {
+        // After successful scheduling
+        showToast('Delivery scheduled successfully');
+        
+        // Refresh the dashboard
+        if (window.opener && !window.opener.closed) {
+            window.opener.refreshDashboard();
+        }
+        
+        // Clear form or redirect
+        window.location.href = 'employeeDashboard.html';
+    } catch (error) {
+        showToast('Error scheduling delivery: ' + error.message);
+    }
+}

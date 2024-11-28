@@ -6,10 +6,11 @@ exports.dashboard = async (req, res) => {
             `SELECT COUNT(*) as count FROM DONATIONS WHERE status = 'pending'`
         );
 
-        const [todayDeliveries] = await db.query(
-            `SELECT COUNT(*) as count FROM DELIVERIES 
-             WHERE DATE(start_time) = CURDATE() AND status != 'failed'`
-        );
+        const [todayDeliveries] = await db.query(`
+            SELECT COUNT(*) as count 
+            FROM DONATION_ASSIGNMENTS 
+            WHERE DATE(scheduled_delivery_date) = CURDATE()
+        `);
 
         const [activeVolunteers] = await db.query(
             `SELECT COUNT(*) as count FROM VOLUNTEERS 

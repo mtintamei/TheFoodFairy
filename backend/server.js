@@ -34,7 +34,8 @@ app.use(cors({
     origin: ['http://127.0.0.1:5501', 'http://localhost:5501'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['Authorization']
 }));
 
 // Import routes
@@ -55,6 +56,13 @@ app.use('/api/auth', authRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/volunteers', volunteerRoutes);
 
+// Add this after mounting all routes
+app._router.stack.forEach(function(r){
+    if (r.route && r.route.path){
+        console.log(`Route: ${r.route.stack[0].method.toUpperCase()} ${r.route.path}`)
+    }
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', timestamp: new Date() });
@@ -68,7 +76,17 @@ app.use((req, res) => {
     });
 });
 
-// Error handler
+// Add this before the error handler
+app.use((err, req, res, next) => {
+    if (err.name === 'UnauthorizedError') {
+        return res.status(401).json({
+            message: 'Invalid token or no token provided'
+        });
+    }
+    next(err);
+});
+
+// Existing error handler
 app.use((err, req, res, next) => {
     console.error('Error:', err);
     res.status(500).json({ 

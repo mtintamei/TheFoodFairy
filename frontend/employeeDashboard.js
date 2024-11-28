@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
     fetchDashboardData();
     setInterval(fetchDashboardData, 30000);
+    setInterval(fetchDashboardData, 60000);
 });
 
 function checkAuth() {
@@ -90,7 +91,7 @@ function showToast(message) {
     }, 3000);
 }
 
-function updateDashboard(data) {
+async function updateDashboard(data) {
     // Update statistics
     document.getElementById('pendingDonations').textContent = data.stats.pendingDonations || 0;
     document.getElementById('todayDeliveries').textContent = data.stats.todayDeliveries || 0;
@@ -333,4 +334,25 @@ function handleAction(action) {
     
     showToast(actionMessages[action] || 'Processing action...');
     navigateTo(action);
+}
+
+// Add manual refresh function
+async function refreshDashboard() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/employee/dashboard', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch dashboard data');
+        }
+
+        const data = await response.json();
+        updateDashboard(data);
+    } catch (error) {
+        console.error('Error refreshing dashboard:', error);
+    }
 }

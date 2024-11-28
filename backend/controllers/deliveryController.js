@@ -9,6 +9,8 @@ exports.getTodayDeliveries = async (req, res) => {
             SELECT 
                 d.delivery_id,
                 d.status as delivery_status,
+                da.status as assignment_status,
+                COALESCE(d.status, da.status) as effective_status,
                 d.start_time,
                 d.end_time,
                 d.condition_on_delivery,
@@ -16,7 +18,6 @@ exports.getTodayDeliveries = async (req, res) => {
                 da.assignment_id,
                 da.scheduled_delivery_date,
                 da.assigned_quantity,
-                da.status as assignment_status,
                 r.name as recipient_name,
                 r.address as recipient_address,
                 r.contact_person,
@@ -39,7 +40,16 @@ exports.getTodayDeliveries = async (req, res) => {
             LEFT JOIN DELIVERIES d ON da.assignment_id = d.assignment_id
             LEFT JOIN VOLUNTEERS v ON d.volunteer_id = v.volunteer_id
             WHERE DATE(da.scheduled_delivery_date) = CURDATE()
-            ORDER BY da.scheduled_delivery_date ASC
+            ORDER BY 
+                CASE COALESCE(d.status, da.status)
+                    WHEN 'failed' THEN 1
+                    WHEN 'delayed' THEN 2
+                    WHEN 'in_progress' THEN 3
+                    WHEN 'scheduled' THEN 4
+                    WHEN 'completed' THEN 5
+                    ELSE 6
+                END,
+                da.scheduled_delivery_date ASC
         `);
         
         res.json(deliveries);
@@ -172,44 +182,41 @@ exports.updateDeliveryStatus = async (req, res) => {
         const { assignment_id } = req.params;
         const { status, notes } = req.body;
 
-        // First check if the delivery exists
-        const [delivery] = await connection.query(
-            'SELECT * FROM DELIVERIES WHERE assignment_id = ?',
-            [assignment_id]
-        );
-
-        if (delivery.length === 0) {
-            // If no delivery record exists, create one
-            await connection.query(
-                'INSERT INTO DELIVERIES (assignment_id, status, notes) VALUES (?, ?, ?)',
-                [assignment_id, status, notes]
-            );
-        } else {
-            // Update existing delivery
-            await connection.query(
-                'UPDATE DELIVERIES SET status = ?, notes = CONCAT(IFNULL(notes, ""), ?) WHERE assignment_id = ?',
-                [status, notes ? `\n${notes}` : '', assignment_id]
-            );
+        // Validate status
+        const validStatuses = ['scheduled', 'in_progress', 'completed', 'delayed', 'failed'];
+        if (!validStatuses.includes(status)) {
+            throw new Error(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
         }
 
-        // Update the assignment status to match delivery status
+        const timestamp = new Date().toISOString();
+        const statusNote = `${timestamp}: Status changed to ${status}${notes ? ' - ' + notes : ''}`;
+
+        // Update both tables within the transaction
         await connection.query(
-            'UPDATE DONATION_ASSIGNMENTS SET status = ? WHERE assignment_id = ?',
+            'UPDATE DELIVERIES SET status = ?, notes = ?, updated_at = NOW() WHERE assignment_id = ?',
+            [status, statusNote, assignment_id]
+        );
+
+        await connection.query(
+            'UPDATE DONATION_ASSIGNMENTS SET status = ?, updated_at = NOW() WHERE assignment_id = ?',
             [status, assignment_id]
         );
 
         await connection.commit();
+        
         res.json({ 
+            success: true,
             message: 'Delivery status updated successfully',
-            status: status
+            status: status,
+            assignment_id: assignment_id
         });
 
     } catch (error) {
         await connection.rollback();
-        console.error('Error updating delivery status:', error);
+        console.error('Error in updateDeliveryStatus:', error);
         res.status(500).json({ 
-            message: 'Error updating delivery status',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            success: false,
+            message: error.message || 'Error updating delivery status'
         });
     } finally {
         connection.release();
