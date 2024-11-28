@@ -16,4 +16,7 @@ router.post('/:assignment_id/assign-volunteer', authMiddleware, deliveryControll
 router.put('/:assignment_id/reschedule', authMiddleware, deliveryController.rescheduleDelivery);
 router.put('/:assignment_id/status', authMiddleware, deliveryController.updateDeliveryStatus);
 
+// Add this new calendar route
+router.get('/calendar/:year/:month', authMiddleware, deliveryController.getCalendarDeliveries);
+
 module.exports = router;

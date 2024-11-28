@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
     initializeCalendar();
     loadDeliveries();
+    setupModalClose();
 });
 
 function checkAuth() {
@@ -66,6 +67,10 @@ function renderCalendar() {
         const dayCell = document.createElement('div');
         dayCell.className = 'calendar-day';
         dayCell.textContent = day;
+        dayCell.setAttribute('data-date', day);
+        
+        // Make the day clickable
+        dayCell.addEventListener('click', () => showDeliveriesForDate(day));
         
         const today = new Date();
         if (day === today.getDate() && 
@@ -78,78 +83,138 @@ function renderCalendar() {
     }
 }
 
+let currentDeliveries = []; // Store deliveries data globally
+
 async function loadDeliveries() {
     try {
         const token = localStorage.getItem('token');
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth() + 1;
-        
-        const response = await fetch(`http://localhost:3000/deliveries/month/${year}/${month}`, {
+
+        const response = await fetch(`http://localhost:3000/api/deliveries/calendar/${year}/${month}`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
-        
-        const deliveries = await response.json();
-        markDeliveryDays(deliveries);
-        displayDeliveriesTimeline(deliveries);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch deliveries');
+        }
+
+        currentDeliveries = await response.json(); // Store deliveries
+        updateCalendarWithDeliveries(currentDeliveries);
     } catch (error) {
+        console.error('Error loading deliveries:', error);
         showToast('Error loading deliveries: ' + error.message);
     }
 }
 
-function markDeliveryDays(deliveries) {
+function updateCalendarWithDeliveries(deliveries) {
     const days = document.querySelectorAll('.calendar-day:not(.empty):not(.header)');
-    days.forEach(day => day.classList.remove('has-delivery'));
+    days.forEach(day => {
+        day.classList.remove('has-delivery');
+        const countBadge = day.querySelector('.delivery-count');
+        if (countBadge) countBadge.remove();
+    });
     
-    deliveries.forEach(delivery => {
-        const deliveryDate = new Date(delivery.start_time);
-        if (deliveryDate.getMonth() === currentDate.getMonth()) {
-            const dayCell = days[deliveryDate.getDate() - 1];
-            if (dayCell) {
-                dayCell.classList.add('has-delivery');
-            }
+    if (!deliveries || deliveries.length === 0) return;
+
+    // Group deliveries by date
+    const deliveriesByDate = deliveries.reduce((acc, delivery) => {
+        const date = new Date(delivery.scheduled_delivery_date).getDate();
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(delivery);
+        return acc;
+    }, {});
+
+    // Update calendar UI
+    days.forEach(dayCell => {
+        const date = parseInt(dayCell.getAttribute('data-date'));
+        const dateDeliveries = deliveriesByDate[date];
+        
+        if (dateDeliveries && dateDeliveries.length > 0) {
+            dayCell.classList.add('has-delivery');
+            const countBadge = document.createElement('div');
+            countBadge.className = 'delivery-count';
+            countBadge.textContent = dateDeliveries.length;
+            dayCell.appendChild(countBadge);
         }
     });
 }
 
-function displayDeliveriesTimeline(deliveries) {
-    const timeline = document.getElementById('deliveriesTimeline');
-    timeline.innerHTML = '';
-    
-    if (deliveries.length === 0) {
-        timeline.innerHTML = '<div class="delivery-item">No deliveries scheduled for this month</div>';
-        return;
-    }
-    
-    deliveries.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
-    
-    deliveries.forEach(delivery => {
-        const deliveryDate = new Date(delivery.start_time);
-        const item = document.createElement('div');
-        item.className = 'delivery-item';
-        item.innerHTML = `
-            <div class="delivery-time">
-                ${deliveryDate.toLocaleDateString()} ${deliveryDate.toLocaleTimeString()}
-            </div>
-            <div class="delivery-info">
-                <strong>Donation #${delivery.donation_id}</strong>
-                <div>Volunteer: ${delivery.volunteer_name || 'Unassigned'}</div>
-                <div>Status: ${delivery.status}</div>
-            </div>
-            <div class="delivery-actions">
-                <button onclick="viewDeliveryDetails(${delivery.delivery_id})" class="action-button">
-                    View Details
-                </button>
-            </div>
-        `;
-        timeline.appendChild(item);
+function showDeliveriesForDate(day) {
+    const selectedDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+    const deliveriesForDay = currentDeliveries.filter(delivery => {
+        const deliveryDate = new Date(delivery.scheduled_delivery_date);
+        return deliveryDate.getDate() === day &&
+               deliveryDate.getMonth() === selectedDate.getMonth() &&
+               deliveryDate.getFullYear() === selectedDate.getFullYear();
     });
+
+    showDayDeliveriesModal(deliveriesForDay, selectedDate);
 }
 
-function viewDeliveryDetails(deliveryId) {
-    // Implement delivery details view
-    showToast('Delivery details feature coming soon');
+function showDayDeliveriesModal(deliveries, date) {
+    const modal = document.getElementById('deliveryDetailsModal');
+    const details = document.getElementById('deliveryDetails');
+    
+    const formattedDate = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+
+    if (deliveries.length === 0) {
+        details.innerHTML = `
+            <h3>${formattedDate}</h3>
+            <p>No deliveries scheduled for this date.</p>
+        `;
+    } else {
+        details.innerHTML = `
+            <h3>Deliveries for ${formattedDate}</h3>
+            <div class="deliveries-list">
+                ${deliveries.map(delivery => `
+                    <div class="delivery-item">
+                        <div class="delivery-info">
+                            <p><strong>Time:</strong> ${new Date(delivery.scheduled_delivery_date).toLocaleTimeString()}</p>
+                            <p><strong>Donation ID:</strong> ${delivery.donation_id}</p>
+                            <p><strong>Recipient:</strong> ${delivery.recipient_name}</p>
+                            <p><strong>Volunteer:</strong> ${delivery.volunteer_name || 'Unassigned'}</p>
+                            <p><strong>Status:</strong> <span class="status-badge ${delivery.status || 'pending'}">${formatStatus(delivery.status)}</span></p>
+                            <p><strong>Route:</strong> ${delivery.route_name}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    modal.style.display = 'block';
+}
+
+function setupModalClose() {
+    // Close button functionality
+    const closeButtons = document.querySelectorAll('.close');
+    closeButtons.forEach(button => {
+        button.onclick = function() {
+            document.getElementById('deliveryDetailsModal').style.display = 'none';
+        }
+    });
+
+    // Click outside modal to close
+    window.onclick = function(event) {
+        const modal = document.getElementById('deliveryDetailsModal');
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    }
+}
+
+function formatStatus(status) {
+    if (!status) return 'Not Set';
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function showToast(message) {

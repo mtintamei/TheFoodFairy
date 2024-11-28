@@ -124,7 +124,7 @@ async function loadBeneficiaries() {
 async function loadVolunteers() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/api/volunteers', {
+        const response = await fetch('http://localhost:3000/api/volunteers/active', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

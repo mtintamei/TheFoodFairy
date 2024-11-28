@@ -389,3 +389,49 @@ exports.getRoutes = async (req, res) => {
         });
     }
 };
+
+exports.getCalendarDeliveries = async (req, res) => {
+    try {
+        const { year, month } = req.params;
+        console.log('Fetching deliveries for:', { year, month });
+
+        const [deliveries] = await db.query(`
+            SELECT 
+                d.delivery_id,
+                d.status,
+                d.start_time,
+                d.end_time,
+                d.notes,
+                da.assignment_id,
+                da.scheduled_delivery_date,
+                da.assigned_quantity,
+                don.donation_id,
+                r.name as recipient_name,
+                r.address as recipient_address,
+                r.contact_person,
+                r.phone as recipient_phone,
+                rt.name as route_name,
+                CONCAT(v.first_name, ' ', v.last_name) as volunteer_name,
+                v.phone as volunteer_phone,
+                v.volunteer_id
+            FROM DONATION_ASSIGNMENTS da
+            JOIN RECIPIENTS r ON da.recipient_id = r.recipient_id
+            JOIN DONATIONS don ON da.donation_id = don.donation_id
+            JOIN ROUTES rt ON da.route_id = rt.route_id
+            LEFT JOIN DELIVERIES d ON da.assignment_id = d.assignment_id
+            LEFT JOIN VOLUNTEERS v ON d.volunteer_id = v.volunteer_id
+            WHERE YEAR(da.scheduled_delivery_date) = ?
+            AND MONTH(da.scheduled_delivery_date) = ?
+            ORDER BY da.scheduled_delivery_date ASC
+        `, [year, month]);
+
+        console.log(`Found ${deliveries.length} deliveries`);
+        res.json(deliveries);
+    } catch (error) {
+        console.error('Error fetching calendar deliveries:', error);
+        res.status(500).json({ 
+            message: 'Error fetching calendar deliveries',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
