@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
-    loadVolunteers();
+    fetchVolunteers();
     setupFilters();
 });
 
@@ -12,90 +12,157 @@ function checkAuth() {
     }
 }
 
-async function loadVolunteers(status = 'all') {
+function setupFilters() {
+    const searchInput = document.getElementById('searchVolunteer');
+    const statusFilter = document.getElementById('statusFilter');
+
+    searchInput.addEventListener('input', debounce(() => filterVolunteers(), 300));
+    statusFilter.addEventListener('change', () => filterVolunteers());
+}
+
+async function fetchVolunteers() {
     try {
         const token = localStorage.getItem('token');
-        const url = `http://localhost:3000/volunteers${status !== 'all' ? `?status=${status}` : ''}`;
-        
-        const response = await fetch(url, {
+        console.log('Fetching all volunteers with token:', token ? 'Present' : 'Missing');
+
+        const response = await fetch('http://localhost:3000/api/volunteers/all', {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
-        
-        const volunteers = await response.json();
-        displayVolunteers(volunteers);
+
+        console.log('Response status:', response.status);
+        const data = await response.json();
+        console.log('Response data:', data);
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch volunteers');
+        }
+
+        displayVolunteers(data);
     } catch (error) {
-        showToast('Error loading volunteers: ' + error.message);
+        console.error('Error details:', error);
+        const container = document.getElementById('volunteersContainer');
+        container.innerHTML = '<div class="no-volunteers">Error loading volunteers. Please try again.</div>';
+        showToast('Error: ' + error.message);
     }
 }
 
 function displayVolunteers(volunteers) {
-    const grid = document.getElementById('volunteersGrid');
-    grid.innerHTML = '';
-    
+    const container = document.getElementById('volunteersContainer');
+    container.innerHTML = '';
+
+    if (volunteers.length === 0) {
+        container.innerHTML = '<div class="no-volunteers">No volunteers found</div>';
+        return;
+    }
+
     volunteers.forEach(volunteer => {
         const card = document.createElement('div');
         card.className = 'volunteer-card';
         card.innerHTML = `
             <div class="volunteer-info">
-                <span class="volunteer-name">${volunteer.first_name} ${volunteer.last_name}</span>
-                <span class="volunteer-status ${volunteer.status}">${volunteer.status}</span>
-                <span>${volunteer.email}</span>
-                <span>${volunteer.phone}</span>
+                <h3>${volunteer.first_name} ${volunteer.last_name}</h3>
+                <span class="status-badge ${volunteer.status}">${formatStatus(volunteer.status)}</span>
+                <p><strong>Email:</strong> ${volunteer.email}</p>
+                <p><strong>Phone:</strong> ${volunteer.phone}</p>
+                <p><strong>Joined:</strong> ${new Date(volunteer.join_date).toLocaleDateString()}</p>
             </div>
             <div class="volunteer-actions">
-                <button onclick="updateVolunteerStatus(${volunteer.volunteer_id}, '${volunteer.status === 'active' ? 'inactive' : 'active'}')" 
-                        class="action-button">
-                    ${volunteer.status === 'active' ? 'Deactivate' : 'Activate'}
+                <button onclick="openVolunteerModal(${volunteer.volunteer_id})" class="action-button">
+                    View Details
                 </button>
             </div>
         `;
-        grid.appendChild(card);
+        container.appendChild(card);
     });
 }
 
-function setupFilters() {
-    const searchInput = document.querySelector('.search-input');
-    const statusFilter = document.querySelector('.filter-select');
-    
-    searchInput.addEventListener('input', debounce(filterVolunteers, 300));
-    statusFilter.addEventListener('change', () => filterVolunteers());
+function formatStatus(status) {
+    return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
-async function filterVolunteers() {
-    const searchTerm = document.querySelector('.search-input').value.toLowerCase();
-    const status = document.querySelector('.filter-select').value;
-    
+async function openVolunteerModal(volunteerId) {
     try {
         const token = localStorage.getItem('token');
-        const url = `http://localhost:3000/volunteers${status !== 'all' ? `?status=${status}` : ''}`;
+        console.log('Fetching details for volunteer:', volunteerId);
         
-        const response = await fetch(url, {
+        const response = await fetch(`http://localhost:3000/api/volunteers/${volunteerId}`, {
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
         });
-        
-        let volunteers = await response.json();
-        
-        if (searchTerm) {
-            volunteers = volunteers.filter(v => 
-                `${v.first_name} ${v.last_name}`.toLowerCase().includes(searchTerm) ||
-                v.email.toLowerCase().includes(searchTerm)
-            );
+
+        const data = await response.json();
+        console.log('Received volunteer data:', data);
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to fetch volunteer details');
         }
+
+        const modal = document.getElementById('volunteerModal');
+        const details = document.getElementById('volunteerDetails');
         
-        displayVolunteers(volunteers);
+        details.innerHTML = `
+            <div class="detail-section">
+                <h3>Personal Information</h3>
+                <p><strong>Name:</strong> ${data.first_name} ${data.last_name}</p>
+                <p><strong>Email:</strong> ${data.email}</p>
+                <p><strong>Phone:</strong> ${data.phone}</p>
+                <p><strong>Gender:</strong> ${data.gender || 'Not specified'}</p>
+                <p><strong>Address:</strong> ${data.address || 'Not provided'}</p>
+            </div>
+            <div class="detail-section">
+                <h3>Volunteer Status</h3>
+                <p><strong>Status:</strong> <span class="status-badge ${data.status}">${formatStatus(data.status)}</span></p>
+                <p><strong>Start Date:</strong> ${data.start_date ? new Date(data.start_date).toLocaleDateString() : 'Not set'}</p>
+                <p><strong>Join Date:</strong> ${data.join_date ? new Date(data.join_date).toLocaleDateString() : 'Not set'}</p>
+                <p><strong>Background Check:</strong> ${formatStatus(data.background_check)}</p>
+            </div>
+            <div class="detail-section">
+                <h3>Delivery Statistics</h3>
+                <p><strong>Completed Deliveries:</strong> ${data.stats?.completed_deliveries || 0}</p>
+                <p><strong>Ongoing Deliveries:</strong> ${data.stats?.ongoing_deliveries || 0}</p>
+            </div>
+            ${data.why_volunteer ? `
+                <div class="detail-section">
+                    <h3>Motivation</h3>
+                    <p>${data.why_volunteer}</p>
+                </div>
+            ` : ''}
+        `;
+
+        // Setup action buttons based on current status
+        const activateButton = document.getElementById('activateButton');
+        const deactivateButton = document.getElementById('deactivateButton');
+
+        if (data.status === 'pending_verification') {
+            activateButton.style.display = 'block';
+            deactivateButton.style.display = 'none';
+            activateButton.onclick = () => updateVolunteerStatus(volunteerId, 'active');
+        } else if (data.status === 'active') {
+            activateButton.style.display = 'none';
+            deactivateButton.style.display = 'block';
+            deactivateButton.onclick = () => updateVolunteerStatus(volunteerId, 'inactive');
+        } else {
+            activateButton.style.display = 'block';
+            deactivateButton.style.display = 'none';
+            activateButton.onclick = () => updateVolunteerStatus(volunteerId, 'active');
+        }
+
+        modal.style.display = 'block';
     } catch (error) {
-        showToast('Error filtering volunteers: ' + error.message);
+        console.error('Error fetching volunteer details:', error);
+        showToast('Error: ' + error.message);
     }
 }
 
 async function updateVolunteerStatus(volunteerId, newStatus) {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/volunteers/${volunteerId}/status`, {
+        const response = await fetch(`http://localhost:3000/api/volunteers/${volunteerId}/status`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -103,15 +170,56 @@ async function updateVolunteerStatus(volunteerId, newStatus) {
             },
             body: JSON.stringify({ status: newStatus })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to update volunteer status');
         }
-        
-        showToast('Volunteer status updated successfully');
-        loadVolunteers(document.querySelector('.filter-select').value);
+
+        document.getElementById('volunteerModal').style.display = 'none';
+        showToast(`Volunteer ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`);
+        fetchVolunteers(); // Refresh the list
     } catch (error) {
-        showToast('Error updating volunteer status: ' + error.message);
+        showToast('Error: ' + error.message);
+    }
+}
+
+function filterVolunteers() {
+    const searchTerm = document.getElementById('searchVolunteer').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value;
+    const cards = document.querySelectorAll('.volunteer-card');
+
+    cards.forEach(card => {
+        const volunteerName = card.querySelector('h3').textContent.toLowerCase();
+        const volunteerStatus = card.querySelector('.status-badge').className.split(' ')[1];
+        
+        const matchesSearch = volunteerName.includes(searchTerm);
+        const matchesStatus = statusFilter === 'all' || volunteerStatus === statusFilter;
+
+        card.style.display = (matchesSearch && matchesStatus) ? 'block' : 'none';
+    });
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function handleLogout() {
+    localStorage.removeItem('token');
+    window.location.href = 'employeeLogin.html';
+}
+
+// Modal close functionality
+document.querySelector('.close').onclick = function() {
+    document.getElementById('volunteerModal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    const modal = document.getElementById('volunteerModal');
+    if (event.target === modal) {
+        modal.style.display = 'none';
     }
 }
 
@@ -125,11 +233,4 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
-}
-
-function showToast(message) {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
 }

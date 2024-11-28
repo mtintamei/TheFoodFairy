@@ -5,20 +5,14 @@ const router = express.Router();
 const volunteerController = require('../controllers/volunteerController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Public routes
+// Public route - no auth required
 router.post('/register', volunteerController.addVolunteer);
 
-// Protected routes - apply authMiddleware
-router.use(authMiddleware);
-
-// GET /api/volunteers/active
-router.get('/active', volunteerController.getActiveVolunteers);
-
-// Other routes
-router.get('/', volunteerController.getAllVolunteers);
-router.get('/available', volunteerController.getAvailableVolunteers);
-router.put('/:id/status', volunteerController.updateStatus);
-router.put('/:id/background-check', volunteerController.updateBackgroundCheck);
-router.get('/:id', volunteerController.getVolunteerById);
+// Protected routes - require authentication
+router.get('/all', authMiddleware, volunteerController.getAllVolunteers);
+router.get('/active', authMiddleware, volunteerController.getActiveVolunteers);
+router.get('/available', authMiddleware, volunteerController.getAvailableVolunteers);
+router.get('/:id', authMiddleware, volunteerController.getVolunteerById);
+router.put('/:id/status', authMiddleware, volunteerController.updateVolunteerStatus);
 
 module.exports = router;

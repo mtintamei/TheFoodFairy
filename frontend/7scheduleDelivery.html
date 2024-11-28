@@ -4,51 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Schedule Delivery - Food Fairy</title>
-    <link rel="stylesheet" href="789styles/styles.css">
+    <link rel="stylesheet" href="1pendingDonations.css">
+    <link rel="stylesheet" href="employeeDashboard.css">
+    <link rel="stylesheet" href="7scheduleDelivery.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="header-content">
-                <a href="employeeDashboard.html" class="back-button">
-                    ← Back to Dashboard
-                </a>
-                <h1>Schedule Delivery</h1>
+                <a href="employeeDashboard.html" class="back-button">← Back to Dashboard</a>
+                <img
+                    alt="Company Logo"
+                    src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                    class="navbar8-image1"
+                />
             </div>
+            <div class="header-right">
+                <button onclick="handleLogout()" class="logout-button">Logout</button>
+            </div>
+            <h1>Schedule Delivery</h1>
         </div>
 
-        <div class="form-container">
-            <form class="donation-form" id="scheduleDeliveryForm">
+        <div class="content-container">
+            <form id="scheduleDeliveryForm" class="form-card">
                 <div class="form-group">
-                    <label for="donationId">Select Donation</label>
-                    <select id="donationId" required>
+                    <label for="donationId">Select Donation *</label>
+                    <select id="donationId" required class="form-select">
                         <option value="">Select a pending donation</option>
                     </select>
+                    <small>Choose a donation that needs to be delivered</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="volunteerId">Assign Volunteer</label>
-                    <select id="volunteerId" required>
-                        <option value="">Select a volunteer</option>
+                    <label for="beneficiaryId">Select Beneficiary *</label>
+                    <select id="beneficiaryId" required class="form-select">
+                        <option value="">Select a beneficiary</option>
                     </select>
+                    <small>Choose who will receive this donation</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="pickupTime">Pickup Time</label>
-                    <input type="datetime-local" id="pickupTime" required>
+                    <label for="assignedQuantity">Quantity *</label>
+                    <input type="number" id="assignedQuantity" required class="form-input" step="0.01" min="0">
+                    <small>How much of the donation to assign</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="route">Delivery Route</label>
-                    <select id="route" required>
+                    <label for="route">Select Route *</label>
+                    <select id="route" required class="form-select">
                         <option value="">Select a route</option>
                     </select>
+                    <small>Choose the delivery route</small>
                 </div>
 
-                <button type="submit" class="submit-button">Schedule Delivery</button>
+                <div class="form-group">
+                    <label for="volunteerId">Select Volunteer *</label>
+                    <select id="volunteerId" required class="form-select">
+                        <option value="">Select a volunteer</option>
+                    </select>
+                    <small>Choose who will deliver this donation</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="pickupTime">Pickup Date & Time *</label>
+                    <input type="datetime-local" id="pickupTime" required class="form-input">
+                    <small>When should the delivery take place</small>
+                </div>
+
+                <button type="submit" class="action-button">Schedule Delivery</button>
             </form>
         </div>
     </div>
+
     <div id="toast" class="toast"></div>
     <script src="7scheduleDelivery.js"></script>
 </body>

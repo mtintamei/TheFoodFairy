@@ -5,8 +5,12 @@ const router = express.Router();
 const deliveryController = require('../controllers/deliveryController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Define routes
+// Define routes - specific routes first, before any parameterized routes
+router.get('/routes', authMiddleware, deliveryController.getRoutes);  // Added authMiddleware
 router.get('/today', authMiddleware, deliveryController.getTodayDeliveries);
+router.post('/schedule', authMiddleware, deliveryController.scheduleDelivery);
+
+// Parameterized routes last
 router.get('/:assignment_id', authMiddleware, deliveryController.getDeliveryDetails);
 router.post('/:assignment_id/assign-volunteer', authMiddleware, deliveryController.assignVolunteer);
 router.put('/:assignment_id/reschedule', authMiddleware, deliveryController.rescheduleDelivery);

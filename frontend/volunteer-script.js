@@ -6,21 +6,21 @@ document.getElementById('volunteerForm').addEventListener('submit', function(eve
   }
 
   const formData = {
-    firstname: document.getElementById('firstName').value,
-    lastname: document.getElementById('lastName').value,
+    firstName: document.getElementById('firstName').value,
+    lastName: document.getElementById('lastName').value,
     email: document.getElementById('email').value,
     phone: document.getElementById('phone').value,
     gender: document.querySelector('input[name="gender"]:checked').value,
-    start_date: document.getElementById('startDate').value,
+    startDate: document.getElementById('startDate').value,
     address: document.getElementById('address').value,
-    why_volunteer: document.getElementById('motivation').value
+    motivation: document.getElementById('motivation').value
   };
 
   const submitBtn = document.querySelector('.submit-btn');
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting...';
 
-  fetch('http://localhost:3000/volunteers', {
+  fetch('http://localhost:3000/api/volunteers/register', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -31,16 +31,16 @@ document.getElementById('volunteerForm').addEventListener('submit', function(eve
   .then(data => {
     if (data.message === 'New volunteer added') {
       document.getElementById('volunteerForm').reset();
-      showModal('Congratulations! Your application has been received.');
+      showModal('Congratulations! Your application has been received. Our team will review your application and contact you soon.');
     } else if (data.message === 'Volunteer with this email already exists') {
       showModal('You have already applied. Please check your email for further instructions.');
     } else {
-      alert('There was an error submitting your application. Please try again.');
+      throw new Error(data.message || 'Failed to submit application');
     }
   })
   .catch(error => {
     console.error('Error:', error);
-    alert('There was an error submitting your application. Please try again.');
+    showModal('There was an error submitting your application. Please try again.');
   })
   .finally(() => {
     submitBtn.disabled = false;

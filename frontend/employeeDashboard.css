@@ -276,13 +276,12 @@ body {
 }
 
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 5px;
-    color: #5f6368;
+    font-weight: 500;
+    margin-bottom: 8px;
 }
 
 .form-group input,
@@ -293,6 +292,32 @@ body {
     border: 1px solid #ddd;
     border-radius: 5px;
     font-size: 0.9em;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #eb9c09;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(235, 156, 9, 0.1);
+}
+
+.form-group small {
+    color: #666;
+    font-size: 0.8em;
+    margin-top: 4px;
+    display: block;
+}
+
+.form-group select:invalid,
+.form-group input:invalid {
+    border-color: #ff4444;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
 }
 
 .submit-button {
@@ -308,6 +333,11 @@ body {
 
 .submit-button:hover {
     background: #d48d08;
+}
+
+.submit-button:disabled {
+    background: #cccccc;
+    cursor: not-allowed;
 }
 
 .header-right {
@@ -411,4 +441,22 @@ body {
         grid-template-columns: 1fr;
         gap: 10px;
     }
+}
+
+/* Add these styles to your existing CSS */
+.step {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.step h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.2em;
+}
+
+#step2 {
+    display: none;
 }

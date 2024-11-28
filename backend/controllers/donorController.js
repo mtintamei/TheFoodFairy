@@ -131,20 +131,28 @@ const donorController = {
         const connection = await db.getConnection();
         try {
             await connection.beginTransaction();
-
+            
             const { donation_id } = req.params;
-            const { recipient_id, route_id, scheduled_delivery_date, assigned_quantity } = req.body;
+            const { recipient_id, assigned_quantity, route_id, scheduled_delivery_date } = req.body;
 
-            // Check if donation exists and get current assignments
-            const [donationResult] = await connection.query(`
-                SELECT 
-                    d.*,
-                    COALESCE(SUM(da.assigned_quantity), 0) as total_assigned
-                FROM DONATIONS d
-                LEFT JOIN DONATION_ASSIGNMENTS da ON d.donation_id = da.donation_id
-                WHERE d.donation_id = ?
-                GROUP BY d.donation_id
-            `, [donation_id]);
+            console.log('Assignment request:', {
+                donation_id,
+                recipient_id,
+                assigned_quantity,
+                route_id,
+                scheduled_delivery_date
+            });
+
+            // First, check if donation exists and get its details
+            const [donationResult] = await connection.query(
+                `SELECT d.*, 
+                        COALESCE(SUM(da.assigned_quantity), 0) as total_assigned
+                 FROM DONATIONS d
+                 LEFT JOIN DONATION_ASSIGNMENTS da ON d.donation_id = da.donation_id
+                 WHERE d.donation_id = ?
+                 GROUP BY d.donation_id`,
+                [donation_id]
+            );
 
             const donation = donationResult[0];
             if (!donation) {
@@ -152,7 +160,10 @@ const donorController = {
                 return res.status(404).json({ message: 'Donation not found' });
             }
 
-            const remainingQuantity = donation.quantity - donation.total_assigned;
+            // Calculate remaining quantity
+            const remainingQuantity = parseFloat(donation.quantity) - parseFloat(donation.total_assigned || 0);
+            
+            // Validate assigned quantity
             if (remainingQuantity < assigned_quantity) {
                 await connection.rollback();
                 return res.status(400).json({ 
@@ -164,20 +175,21 @@ const donorController = {
             // Create donation assignment
             const [result] = await connection.query(`
                 INSERT INTO DONATION_ASSIGNMENTS 
-                (donation_id, recipient_id, route_id, scheduled_delivery_date, assigned_quantity, status)
-                VALUES (?, ?, ?, ?, ?, 'scheduled')
-            `, [donation_id, recipient_id, route_id, scheduled_delivery_date, assigned_quantity]);
+                (donation_id, recipient_id, assigned_quantity, route_id, scheduled_delivery_date, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, 'pending', NOW(), NOW())
+            `, [donation_id, recipient_id, assigned_quantity, route_id, scheduled_delivery_date]);
 
-            // Check if donation is fully assigned
+            // Update donation status if fully assigned
             const newRemainingQuantity = remainingQuantity - assigned_quantity;
             if (newRemainingQuantity === 0) {
                 await connection.query(
-                    'UPDATE DONATIONS SET status = "assigned" WHERE donation_id = ?',
+                    'UPDATE DONATIONS SET status = "assigned", updated_at = NOW() WHERE donation_id = ?',
                     [donation_id]
                 );
             }
 
             await connection.commit();
+            
             res.status(201).json({
                 message: 'Donation assigned successfully',
                 assignment_id: result.insertId,
@@ -186,7 +198,8 @@ const donorController = {
 
         } catch (error) {
             await connection.rollback();
-            console.error('Error assigning donation:', error);
+            console.error('Error in assignBeneficiary:', error);
+            console.error('Stack trace:', error.stack);
             res.status(500).json({ 
                 message: 'Error assigning donation',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -194,7 +207,69 @@ const donorController = {
         } finally {
             connection.release();
         }
+    },
+
+    // Add this method to handle recording new donations
+    recordDonation: async (req, res) => {
+        try {
+            console.log('Received donation data:', req.body); // Add logging
+            
+            const { donor_id, food_id, quantity, pickup_time, status, notes } = req.body;
+            
+            const [result] = await db.query(
+                'INSERT INTO DONATIONS (donor_id, food_id, quantity, pickup_time, status, notes) VALUES (?, ?, ?, ?, ?, ?)',
+                [donor_id, food_id, quantity, pickup_time, status, notes]
+            );
+            
+            console.log('Donation recorded:', result); // Add logging
+            
+            res.status(201).json({ 
+                message: 'Donation recorded successfully',
+                donation_id: result.insertId
+            });
+        } catch (error) {
+            console.error('Error recording donation:', error);
+            res.status(500).json({ 
+                message: 'Error recording donation',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    },
+
+    // Add this method to the donorController object
+    getDonationDetails: async (req, res) => {
+        try {
+            const { donation_id } = req.params;
+            
+            const [donationResult] = await db.query(`
+                SELECT 
+                    d.*,
+                    f.name as food_name,
+                    f.unit,
+                    COALESCE(SUM(da.assigned_quantity), 0) as total_assigned,
+                    (d.quantity - COALESCE(SUM(da.assigned_quantity), 0)) as remaining_quantity
+                FROM DONATIONS d
+                JOIN FOOD_ITEMS f ON d.food_id = f.food_id
+                LEFT JOIN DONATION_ASSIGNMENTS da ON d.donation_id = da.donation_id
+                WHERE d.donation_id = ?
+                GROUP BY d.donation_id
+            `, [donation_id]);
+
+            if (!donationResult || donationResult.length === 0) {
+                return res.status(404).json({ 
+                    message: 'Donation not found',
+                    error: 'DONATION_NOT_FOUND'
+                });
+            }
+
+            res.json(donationResult[0]);
+        } catch (error) {
+            console.error('Error fetching donation details:', error);
+            res.status(500).json({ 
+                message: 'Error fetching donation details',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
     }
 };
-
 module.exports = donorController;

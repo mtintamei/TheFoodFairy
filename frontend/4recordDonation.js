@@ -1,52 +1,97 @@
 document.addEventListener('DOMContentLoaded', function() {
-    fetchDonors();
-    fetchFoodItems();
+    fetchApprovedDonors();
     setupForm();
+    setCurrentPickupTime();
 });
 
-async function fetchDonors() {
+function setCurrentPickupTime() {
+    const now = new Date();
+    const pickupInput = document.getElementById('pickupTime');
+    pickupInput.value = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+}
+
+async function fetchApprovedDonors() {
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/donors', {
+        const response = await fetch('http://localhost:3000/api/donors', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         
+        if (!response.ok) {
+            throw new Error('Failed to fetch donors');
+        }
+        
         const donors = await response.json();
-        populateSelect('donor', donors, 'donor_id', 'name');
+        const select = document.getElementById('donor');
+        select.innerHTML = '<option value="">Select Donor</option>';
+        
+        const activeDonors = donors.filter(donor => donor.status === 'active');
+        
+        activeDonors.forEach(donor => {
+            const option = document.createElement('option');
+            option.value = donor.donor_id;
+            option.textContent = `${donor.name} - ${donor.contact_person} (${donor.type})`;
+            select.appendChild(option);
+        });
+
+        select.addEventListener('change', fetchFoodItems);
     } catch (error) {
-        showToast('Error fetching donors');
+        showToast('Error fetching donors: ' + error.message);
     }
 }
 
 async function fetchFoodItems() {
+    const foodSelect = document.getElementById('foodItem');
+    foodSelect.innerHTML = '<option value="">Select Food Item</option>';
+    foodSelect.disabled = true;
+
+    if (!document.getElementById('donor').value) {
+        return;
+    }
+
     try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3000/food-items', {
+        const response = await fetch('http://localhost:3000/api/food-types', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
         
+        if (!response.ok) {
+            throw new Error('Failed to fetch food items');
+        }
+        
         const items = await response.json();
-        populateSelect('foodItem', items, 'food_id', 'name');
+        foodSelect.disabled = false;
+        
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item.food_id;
+            option.textContent = `${item.name} (${item.category}) - ${item.unit}`;
+            option.dataset.unit = item.unit;
+            foodSelect.appendChild(option);
+        });
+
+        foodSelect.addEventListener('change', updateQuantityUnit);
     } catch (error) {
-        showToast('Error fetching food items');
+        showToast('Error fetching food items: ' + error.message);
     }
 }
 
-function populateSelect(elementId, items, valueKey, textKey) {
-    const select = document.getElementById(elementId);
-    items.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item[valueKey];
-        option.textContent = item[textKey];
-        select.appendChild(option);
-    });
+function updateQuantityUnit() {
+    const foodSelect = document.getElementById('foodItem');
+    const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+    const quantityLabel = document.querySelector('label[for="quantity"]');
+    if (selectedOption && selectedOption.dataset.unit) {
+        quantityLabel.textContent = `Quantity (${selectedOption.dataset.unit})`;
+    } else {
+        quantityLabel.textContent = 'Quantity';
+    }
 }
 
-function setupForm() {
+async function setupForm() {
     const form = document.getElementById('donationForm');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -56,12 +101,17 @@ function setupForm() {
             food_id: document.getElementById('foodItem').value,
             quantity: document.getElementById('quantity').value,
             pickup_time: document.getElementById('pickupTime').value,
+            status: 'pending',
             notes: document.getElementById('notes').value
         };
 
+        console.log('Sending donation data:', formData);
+
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:3000/donations', {
+            console.log('Using token:', token);
+            
+            const response = await fetch('http://localhost:3000/api/donors/donations/record', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -70,14 +120,23 @@ function setupForm() {
                 body: JSON.stringify(formData)
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
-                showToast('Donation recorded successfully');
+                const result = await response.json();
+                console.log('Success response:', result);
+                showToast('Donation pickup recorded successfully');
                 form.reset();
+                document.getElementById('foodItem').disabled = true;
+                setCurrentPickupTime();
             } else {
-                throw new Error('Failed to record donation');
+                const errorData = await response.json();
+                console.error('Error response:', errorData);
+                throw new Error(errorData.message || 'Failed to record donation pickup');
             }
         } catch (error) {
-            showToast('Error recording donation');
+            console.error('Caught error:', error);
+            showToast('Error recording donation: ' + error.message);
         }
     });
 }
@@ -88,6 +147,7 @@ function showToast(message) {
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
 }
+
 function handleLogout() {
     localStorage.removeItem('token');
     window.location.href = 'employeeLogin.html';

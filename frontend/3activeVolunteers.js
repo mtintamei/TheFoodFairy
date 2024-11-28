@@ -20,33 +20,29 @@ function setupSearchAndFilters() {
 async function fetchActiveVolunteers() {
     try {
         const token = localStorage.getItem('token');
-        console.log('Making request to /api/volunteers/active');
+        console.log('Fetching active volunteers with token:', token ? 'Present' : 'Missing');
         
         const response = await fetch('http://localhost:3000/api/volunteers/active', {
-            method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             }
         });
         
-        console.log('Response:', response);
+        console.log('Response status:', response.status);
         const data = await response.json();
         console.log('Response data:', data);
 
         if (!response.ok) {
-            if (response.status === 401) {
-                localStorage.clear();
-                window.location.href = 'employeeLogin.html';
-                return;
-            }
             throw new Error(data.message || 'Failed to fetch volunteers');
         }
 
         displayVolunteers(data);
     } catch (error) {
         console.error('Error details:', error);
-        showToast(error.message);
+        const container = document.getElementById('volunteersContainer');
+        container.innerHTML = '<div class="no-volunteers">Error loading volunteers. Please try again.</div>';
+        showToast('Error: ' + error.message);
     }
 }
 
@@ -65,26 +61,14 @@ function displayVolunteers(volunteers) {
         card.innerHTML = `
             <div class="volunteer-header">
                 <h3>${volunteer.first_name} ${volunteer.last_name}</h3>
-                <span class="availability-badge ${volunteer.preferred_times || 'flexible'}">
-                    ${volunteer.preferred_times || 'Flexible'}
-                </span>
+                <span class="status-badge ${volunteer.status}">Active</span>
             </div>
             <div class="volunteer-info">
                 <p><i class="fas fa-envelope"></i> ${volunteer.email}</p>
                 <p><i class="fas fa-phone"></i> ${volunteer.phone}</p>
-                <p><i class="fas fa-map-marker-alt"></i> ${volunteer.address}</p>
-                <p><i class="fas fa-calendar-check"></i> Joined: ${new Date(volunteer.start_date).toLocaleDateString()}</p>
+                <p><i class="fas fa-map-marker-alt"></i> ${volunteer.address || 'No address provided'}</p>
+                <p><i class="fas fa-calendar-check"></i> Start Date: ${new Date(volunteer.start_date).toLocaleDateString()}</p>
                 <p><i class="fas fa-check-circle"></i> Background Check: ${volunteer.background_check}</p>
-            </div>
-            <div class="volunteer-stats">
-                <div class="stat">
-                    <span class="stat-value">${volunteer.completed_deliveries || 0}</span>
-                    <span class="stat-label">Deliveries</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-value">${volunteer.rating || 'N/A'}</span>
-                    <span class="stat-label">Rating</span>
-                </div>
             </div>
             <div class="volunteer-actions">
                 <button onclick="assignDelivery(${volunteer.volunteer_id})" class="action-button">

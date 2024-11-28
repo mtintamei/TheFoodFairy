@@ -4,33 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Volunteers - Food Fairy</title>
-    <link rel="stylesheet" href="789styles/styles.css">
+    <link rel="stylesheet" href="employeeDashboard.css">
+    <link rel="stylesheet" href="8manageVolunteers.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="header-content">
-                <a href="employeeDashboard.html" class="back-button">
-                    ← Back to Dashboard
-                </a>
-                <h1>Manage Volunteers</h1>
+                <a href="employeeDashboard.html" class="back-button">← Back to Dashboard</a>
+                <img
+                    alt="Company Logo"
+                    src="https://i.postimg.cc/G2SCRrLv/LOGO.png"
+                    class="navbar8-image1"
+                />
+            </div>
+            <div class="header-right">
+                <button onclick="handleLogout()" class="logout-button">Logout</button>
+            </div>
+            <h1>Manage Volunteers</h1>
+        </div>
+
+        <div class="content-grid">
+            <div class="filters">
+                <input type="text" id="searchVolunteer" placeholder="Search volunteers..." class="search-input">
+                <select id="statusFilter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="pending_verification">Pending Verification</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+
+            <div class="volunteers-grid" id="volunteersContainer">
+                <!-- Volunteers will be populated here -->
             </div>
         </div>
+    </div>
 
-        <div class="filters">
-            <input type="text" class="search-input" placeholder="Search volunteers...">
-            <select class="filter-select">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="pending">Pending Verification</option>
-            </select>
-        </div>
-
-        <div class="volunteers-grid" id="volunteersGrid">
-            <!-- Volunteers will be populated here -->
+    <!-- Volunteer Details Modal -->
+    <div id="volunteerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Volunteer Details</h2>
+            <div id="volunteerDetails" class="volunteer-details">
+                <!-- Volunteer details will be inserted here -->
+            </div>
+            <div class="action-buttons">
+                <button id="activateButton" class="action-button">Activate Volunteer</button>
+                <button id="deactivateButton" class="action-button warning">Deactivate Volunteer</button>
+            </div>
         </div>
     </div>
+
     <div id="toast" class="toast"></div>
     <script src="8manageVolunteers.js"></script>
 </body>

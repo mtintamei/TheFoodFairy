@@ -134,6 +134,90 @@ const beneficiaryController = {
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
+    },
+
+    // Add new method for assigning beneficiary to donation
+    assignToDonation: async (req, res) => {
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+            
+            const { donation_id } = req.params;
+            const { recipient_id, assigned_quantity, route_id, scheduled_delivery_date, status } = req.body;
+
+            console.log('Assignment request:', {
+                donation_id,
+                recipient_id,
+                assigned_quantity,
+                route_id,
+                scheduled_delivery_date,
+                status
+            });
+
+            // First, check if donation exists and get its details
+            const [donationResult] = await connection.query(`
+                SELECT d.*, 
+                        COALESCE(SUM(da.assigned_quantity), 0) as total_assigned
+                 FROM DONATIONS d
+                 LEFT JOIN DONATION_ASSIGNMENTS da ON d.donation_id = da.donation_id
+                 WHERE d.donation_id = ?
+                 GROUP BY d.donation_id`,
+                [donation_id]
+            );
+
+            if (!donationResult.length) {
+                await connection.rollback();
+                return res.status(404).json({ message: 'Donation not found' });
+            }
+
+            const donation = donationResult[0];
+            const remainingQuantity = parseFloat(donation.quantity) - parseFloat(donation.total_assigned || 0);
+
+            // Validate assigned quantity
+            if (remainingQuantity < assigned_quantity) {
+                await connection.rollback();
+                return res.status(400).json({ 
+                    message: 'Insufficient remaining quantity',
+                    available: remainingQuantity
+                });
+            }
+
+            // Create donation assignment with explicit status
+            const [result] = await connection.query(`
+                INSERT INTO DONATION_ASSIGNMENTS 
+                (donation_id, recipient_id, assigned_quantity, route_id, scheduled_delivery_date, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                [donation_id, recipient_id, assigned_quantity, route_id, scheduled_delivery_date, status || 'scheduled']
+            );
+
+            // Update donation status if fully assigned
+            const newRemainingQuantity = remainingQuantity - assigned_quantity;
+            if (newRemainingQuantity === 0) {
+                await connection.query(
+                    'UPDATE DONATIONS SET status = "assigned", updated_at = NOW() WHERE donation_id = ?',
+                    [donation_id]
+                );
+            }
+
+            await connection.commit();
+            
+            res.status(201).json({
+                message: 'Beneficiary assigned successfully',
+                assignment_id: result.insertId,
+                remaining_quantity: newRemainingQuantity
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error('Error in assignToDonation:', error);
+            console.error('Stack trace:', error.stack);
+            res.status(500).json({ 
+                message: 'Error assigning beneficiary',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        } finally {
+            connection.release();
+        }
     }
 };
 

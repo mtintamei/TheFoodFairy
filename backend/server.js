@@ -5,12 +5,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-
-// Print environment variables for debugging
-console.log('DB_HOST:', process.env.DB_HOST);
-console.log('DB_USER:', process.env.DB_USER);
-console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
-console.log('DB_NAME:', process.env.DB_NAME);
+const db = require('./config/db');
+const authMiddleware = require('./middleware/authMiddleware');
 
 // Initialize express app
 const app = express();
@@ -24,12 +20,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Rate limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
-// CORS
+// CORS configuration
 app.use(cors({
     origin: ['http://127.0.0.1:5501', 'http://localhost:5501'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -47,25 +43,24 @@ const authRoutes = require('./routes/authRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const volunteerRoutes = require('./routes/volunteerRoutes');
 
-// Mount all routes
-app.use('/api/donors', donorRoutes);
-app.use('/api/beneficiaries', beneficiaryRoutes);
-app.use('/api/food-types', foodTypeRoutes);
-app.use('/api/employees', employeeRoutes);
+// Routes configuration
 app.use('/api/auth', authRoutes);
-app.use('/api/deliveries', deliveryRoutes);
-app.use('/api/volunteers', volunteerRoutes);
+app.use('/api/donors', authMiddleware, donorRoutes);
+app.use('/api/beneficiaries', authMiddleware, beneficiaryRoutes);
+app.use('/api/food-types', authMiddleware, foodTypeRoutes);
+app.use('/api/employees', authMiddleware, employeeRoutes);
+app.use('/api/deliveries', authMiddleware, deliveryRoutes);
+app.use('/api/volunteers', volunteerRoutes); // Single mount point for volunteer routes
 
-// Add this after mounting all routes
-app._router.stack.forEach(function(r){
-    if (r.route && r.route.path){
-        console.log(`Route: ${r.route.stack[0].method.toUpperCase()} ${r.route.path}`)
-    }
-});
-
-// Health check
+// Health check endpoint
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', timestamp: new Date() });
+    res.status(200).json({ 
+        status: 'OK', 
+        timestamp: new Date(),
+        services: {
+            database: 'connected'
+        }
+    });
 });
 
 // 404 handler
@@ -76,7 +71,7 @@ app.use((req, res) => {
     });
 });
 
-// Add this before the error handler
+// JWT error handler
 app.use((err, req, res, next) => {
     if (err.name === 'UnauthorizedError') {
         return res.status(401).json({
@@ -86,19 +81,51 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
-// Existing error handler
+// General error handler
 app.use((err, req, res, next) => {
     console.error('Error:', err);
-    res.status(500).json({ 
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    
+    // Handle specific database errors
+    if (err.code === 'ER_DATA_TOO_LONG' || err.code === 'ER_DATA_TRUNCATED') {
+        return res.status(400).json({
+            message: 'Invalid data provided',
+            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+        });
+    }
+    
+    // Handle other errors
+    res.status(500).json({
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
     });
 });
+
+// Serve static files from frontend directory
+app.use(express.static('frontend'));
+
+// Test database connection
+db.getConnection()
+    .then(connection => {
+        console.log('Database connected successfully');
+        connection.release();
+    })
+    .catch(err => {
+        console.error('Error connecting to the database:', err);
+        process.exit(1);
+    });
 
 // Start server
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('Unhandled Promise Rejection:', err);
+    if (process.env.NODE_ENV === 'development') {
+        process.exit(1);
+    }
 });
 
 module.exports = app; 

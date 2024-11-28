@@ -270,3 +270,122 @@ exports.getDeliveryDetails = async (req, res) => {
         });
     }
 };
+
+exports.scheduleDelivery = async (req, res) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        console.log('Received scheduling data:', req.body);
+
+        const { donation_id, volunteer_id, route_id, scheduled_delivery_date, assignment_id } = req.body;
+
+        // Validate input
+        if (!donation_id || !volunteer_id || !route_id || !scheduled_delivery_date || !assignment_id) {
+            throw new Error('Missing required fields');
+        }
+
+        // First verify the assignment exists
+        const [assignmentCheck] = await connection.query(
+            'SELECT * FROM DONATION_ASSIGNMENTS WHERE assignment_id = ?',
+            [assignment_id]
+        );
+
+        if (assignmentCheck.length === 0) {
+            throw new Error('Assignment not found');
+        }
+
+        // Define valid status values
+        const VALID_STATUSES = ['scheduled', 'in_progress', 'completed', 'delayed', 'failed'];
+        const initialStatus = 'scheduled';
+
+        if (!VALID_STATUSES.includes(initialStatus)) {
+            throw new Error(`Invalid status value. Must be one of: ${VALID_STATUSES.join(', ')}`);
+        }
+
+        // Create new delivery with direct SQL and explicit status value
+        const insertQuery = `
+            INSERT INTO DELIVERIES 
+            (assignment_id, volunteer_id, status, created_at) 
+            VALUES (?, ?, 'scheduled', NOW())
+            ON DUPLICATE KEY UPDATE 
+            volunteer_id = VALUES(volunteer_id),
+            status = 'scheduled'`;
+
+        const [deliveryResult] = await connection.query(insertQuery, [
+            assignment_id,
+            volunteer_id
+        ]);
+
+        // Get the delivery ID
+        const [deliveryCheck] = await connection.query(
+            'SELECT delivery_id FROM DELIVERIES WHERE assignment_id = ?',
+            [assignment_id]
+        );
+
+        const delivery_id = deliveryResult.insertId || deliveryCheck[0].delivery_id;
+
+        // Update related statuses
+        await Promise.all([
+            connection.query(
+                'UPDATE DONATIONS SET status = "assigned" WHERE donation_id = ?',
+                [donation_id]
+            ),
+            connection.query(
+                'UPDATE DONATION_ASSIGNMENTS SET status = "scheduled" WHERE assignment_id = ?',
+                [assignment_id]
+            )
+        ]);
+
+        await connection.commit();
+        
+        res.status(201).json({
+            message: 'Delivery scheduled successfully',
+            delivery_id: delivery_id
+        });
+
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error scheduling delivery:', error);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({
+            message: 'Error scheduling delivery',
+            error: error.message
+        });
+    } finally {
+        connection.release();
+    }
+};
+
+exports.getRoutes = async (req, res) => {
+    try {
+        console.log('Fetching routes...'); // Debug log
+        
+        const [routes] = await db.query(`
+            SELECT 
+                route_id, 
+                name, 
+                distance_km, 
+                estimated_duration_mins 
+            FROM ROUTES 
+            WHERE status = 'active'
+            ORDER BY name
+        `);
+        
+        console.log('Routes found:', routes); // Debug log
+        
+        if (!routes || routes.length === 0) {
+            return res.status(404).json({ 
+                message: 'No active routes found',
+                error: 'ROUTES_NOT_FOUND'
+            });
+        }
+        
+        res.json(routes);
+    } catch (error) {
+        console.error('Database error when fetching routes:', error);
+        res.status(500).json({ 
+            message: 'Error fetching routes',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};

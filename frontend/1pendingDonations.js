@@ -58,7 +58,7 @@ function displayPendingDonations(donations) {
             <p><strong>Pickup Time:</strong> ${new Date(donation.pickup_time).toLocaleString()}</p>
             <button onclick="openAssignModal(${donation.donation_id}, ${donation.remaining_quantity}, '${donation.unit}')" 
                     class="action-button">
-                Assign to Beneficiary
+                Schedule Delivery
             </button>
         `;
         container.appendChild(card);
@@ -68,73 +68,131 @@ function displayPendingDonations(donations) {
 async function openAssignModal(donationId, remainingQuantity, unit) {
     currentDonationId = donationId;
     const modal = document.getElementById('assignModal');
-    const beneficiarySelect = document.getElementById('beneficiarySelect');
-    const routeSelect = document.getElementById('routeSelect');
     const quantityInput = document.getElementById('assignedQuantity');
     
     // Set max quantity and show remaining
     quantityInput.max = remainingQuantity;
     quantityInput.placeholder = `Max: ${remainingQuantity} ${unit}`;
-    document.getElementById('remainingQuantity').textContent = `Remaining: ${remainingQuantity} ${unit}`;
     
     try {
-        const token = localStorage.getItem('token');
-        
-        // Fetch beneficiaries and routes in parallel
-        const [beneficiariesResponse, routesResponse] = await Promise.all([
-            fetch('http://localhost:3000/api/beneficiaries/active', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            }),
-            fetch('http://localhost:3000/api/beneficiaries/routes', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
+        // Load all data in parallel
+        await Promise.all([
+            loadBeneficiaries(),
+            loadVolunteers(),
+            loadRoutes()
         ]);
-        
-        if (!beneficiariesResponse.ok) {
-            throw new Error('Failed to fetch beneficiaries');
-        }
-        if (!routesResponse.ok) {
-            throw new Error('Failed to fetch routes');
-        }
 
-        const beneficiaries = await beneficiariesResponse.json();
-        const routes = await routesResponse.json();
-
-        // Populate beneficiaries dropdown
-        beneficiarySelect.innerHTML = `
-            <option value="">Select a beneficiary...</option>
-            ${beneficiaries.map(b => `
-                <option value="${b.recipient_id}">${b.name} (Capacity: ${b.capacity})</option>
-            `).join('')}
-        `;
-
-        // Populate routes dropdown
-        routeSelect.innerHTML = `
-            <option value="">Select a route...</option>
-            ${routes.map(r => `
-                <option value="${r.route_id}">${r.name} (${r.distance_km} km, ${r.estimated_duration_mins} mins)</option>
-            `).join('')}
-        `;
-        
-        // Set default date to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(9, 0, 0, 0);
-        document.getElementById('deliveryDate').value = tomorrow.toISOString().slice(0, 16);
+        setDefaultPickupTime();
+        setupEventListeners();
         
         modal.style.display = 'block';
     } catch (error) {
-        showToast('Error fetching data: ' + error.message);
+        showToast('Error loading data: ' + error.message);
     }
 }
 
+async function loadBeneficiaries() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/beneficiaries', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch beneficiaries');
+        }
+        
+        const beneficiaries = await response.json();
+        const select = document.getElementById('beneficiaryId');
+        
+        select.innerHTML = '<option value="">Select a beneficiary</option>';
+        
+        beneficiaries.forEach(beneficiary => {
+            const option = document.createElement('option');
+            option.value = beneficiary.recipient_id;
+            option.textContent = `${beneficiary.name} - ${beneficiary.contact_person}`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading beneficiaries:', error);
+        throw error;
+    }
+}
+
+async function loadVolunteers() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/volunteers', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch volunteers');
+        }
+        
+        const volunteers = await response.json();
+        const select = document.getElementById('volunteerId');
+        
+        select.innerHTML = '<option value="">Select a volunteer</option>';
+        
+        volunteers.forEach(volunteer => {
+            const option = document.createElement('option');
+            option.value = volunteer.volunteer_id;
+            option.textContent = `${volunteer.first_name} ${volunteer.last_name}`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading volunteers:', error);
+        throw error;
+    }
+}
+
+async function loadRoutes() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3000/api/deliveries/routes', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch routes');
+        }
+        
+        const routes = await response.json();
+        const select = document.getElementById('route');
+        
+        select.innerHTML = '<option value="">Select a route</option>';
+        
+        routes.forEach(route => {
+            const option = document.createElement('option');
+            option.value = route.route_id;
+            option.textContent = route.name;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading routes:', error);
+        throw error;
+    }
+}
+
+function setDefaultPickupTime() {
+    const now = new Date();
+    now.setHours(now.getHours() + 1);
+    const pickupInput = document.getElementById('pickupTime');
+    
+    pickupInput.value = now.toISOString().slice(0, 16);
+    pickupInput.min = new Date().toISOString().slice(0, 16);
+}
+
 async function assignBeneficiary() {
-    const beneficiaryId = document.getElementById('beneficiarySelect').value;
-    const routeId = document.getElementById('routeSelect').value;
+    const beneficiaryId = document.getElementById('beneficiaryId').value;
+    const routeId = document.getElementById('route').value;
     const deliveryDate = document.getElementById('deliveryDate').value;
     const quantity = document.getElementById('assignedQuantity').value;
     
@@ -280,4 +338,84 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Add this function to handle form submission setup
+function setupEventListeners() {
+    const form = document.getElementById('scheduleDeliveryForm');
+    
+    if (form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const beneficiaryId = document.getElementById('beneficiaryId').value;
+                const volunteerId = document.getElementById('volunteerId').value;
+                const assignedQuantity = document.getElementById('assignedQuantity').value;
+                const routeId = document.getElementById('route').value;
+                const pickupTime = document.getElementById('pickupTime').value;
+
+                // Validate all required fields
+                if (!beneficiaryId || !volunteerId || !assignedQuantity || !routeId || !pickupTime) {
+                    throw new Error('Please fill in all required fields');
+                }
+
+                // First, assign the beneficiary
+                const beneficiaryData = {
+                    recipient_id: beneficiaryId,
+                    assigned_quantity: parseFloat(assignedQuantity),
+                    route_id: routeId,
+                    scheduled_delivery_date: pickupTime,
+                    status: 'scheduled'
+                };
+
+                const token = localStorage.getItem('token');
+                const assignResponse = await fetch(`http://localhost:3000/api/beneficiaries/donations/${currentDonationId}/assign`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(beneficiaryData)
+                });
+
+                const assignResponseData = await assignResponse.json();
+
+                if (!assignResponse.ok) {
+                    throw new Error(assignResponseData.message || 'Failed to assign beneficiary');
+                }
+
+                // Schedule delivery with the volunteer
+                const scheduleData = {
+                    donation_id: currentDonationId,
+                    volunteer_id: volunteerId,
+                    route_id: routeId,
+                    scheduled_delivery_date: pickupTime,
+                    assignment_id: assignResponseData.assignment_id
+                };
+
+                const scheduleResponse = await fetch('http://localhost:3000/api/deliveries/schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(scheduleData)
+                });
+
+                if (!scheduleResponse.ok) {
+                    const scheduleResponseData = await scheduleResponse.json();
+                    throw new Error(scheduleResponseData.message || 'Failed to schedule delivery');
+                }
+
+                document.getElementById('assignModal').style.display = 'none';
+                showToast('Delivery scheduled successfully');
+                fetchPendingDonations(); // Refresh the list
+
+            } catch (error) {
+                console.error('Error in scheduling delivery:', error);
+                showToast(error.message || 'Error scheduling delivery');
+            }
+        });
+    }
 }
